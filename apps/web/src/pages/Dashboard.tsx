@@ -1,0 +1,99 @@
+import { FileDropzone } from "@/components/FileDropzone";
+import { DataTable } from "@/components/DataTable";
+import { DataProfiler } from "@/components/DataProfiler";
+import { PipelineBuilder } from "@/components/PipelineBuilder";
+import { DashboardCanvas } from "@/components/DashboardCanvas";
+import { SQLEditor } from "@/components/SQLEditor";
+import { TableList } from "@/components/TableList";
+import { useBIStore } from "@/lib/store";
+
+const TABS = [
+  { key: "data", label: "Data", icon: "M4 6h16M4 12h16M4 18h16" },
+  { key: "profile", label: "Profile", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+  { key: "pipeline", label: "ETL", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
+  { key: "chart", label: "Dashboard", icon: "M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" },
+  { key: "sql", label: "SQL", icon: "M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+] as const;
+
+export function Dashboard() {
+  const { tables, viewMode, setViewMode, isProcessing } = useBIStore();
+  const isFullWidth = viewMode === "chart";
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)]">
+      {/* Sidebar */}
+      <aside className="w-56 border-r border-white/[0.04] bg-surface-1/50 flex flex-col overflow-hidden shrink-0">
+        <div className="p-3 border-b border-white/[0.04]">
+          <FileDropzone />
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          <TableList />
+        </div>
+        {isProcessing && (
+          <div className="p-3 border-t border-white/[0.04] flex items-center gap-2 text-[13px] text-aura-400">
+            <div className="w-3 h-3 border-2 border-aura-400 border-t-transparent rounded-full animate-spin" />
+            Processing...
+          </div>
+        )}
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Tabs */}
+        <div className="border-b border-white/[0.04] px-2 flex gap-0.5 bg-surface-1/30">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setViewMode(t.key)}
+              className={`flex items-center gap-2 px-4 py-3 text-[13px] font-medium transition-all duration-200 border-b-2 -mb-px ${
+                viewMode === t.key
+                  ? "border-aura-500 text-aura-400"
+                  : "border-transparent text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={t.icon} />
+              </svg>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        {tables.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-center space-y-4 animate-fade-in">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-white/[0.04] flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[15px] font-medium text-gray-300">Drop a CSV to get started</p>
+                <p className="text-xs text-gray-600 mt-1.5 max-w-[300px] mx-auto leading-relaxed">
+                  Profile, clean, transform, and build dashboards - all processing happens locally in your browser.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-1.5 max-w-xs mx-auto">
+                {["Profile", "ETL", "Filter", "Join", "Aggregate", "Dashboard", "SQL"].map(
+                  (s) => <span key={s} className="chip text-[10px]">{s}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : isFullWidth ? (
+          <div className="flex-1 overflow-hidden">
+            <DashboardCanvas />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-auto p-5 bg-surface-0">
+            {viewMode === "data" && <DataTable />}
+            {viewMode === "profile" && <DataProfiler />}
+            {viewMode === "pipeline" && <PipelineBuilder />}
+            {viewMode === "sql" && <SQLEditor />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

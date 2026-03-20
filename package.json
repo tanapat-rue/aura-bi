@@ -1,0 +1,12 @@
+{
+  "name": "aura-bi",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @aura-bi/web dev\" \"pnpm --filter @aura-bi/worker dev\"",
+    "build": "pnpm --filter @aura-bi/web build && pnpm --filter @aura-bi/worker build",
+    "deploy": "pnpm --filter @aura-bi/worker deploy && pnpm --filter @aura-bi/web deploy"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@aura-bi/worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 execute aura-db --local --file=migrations/0001_init.sql",
+    "db:migrate:remote": "wrangler d1 execute aura-db --remote --file=migrations/0001_init.sql"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "jose": "^6.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}
