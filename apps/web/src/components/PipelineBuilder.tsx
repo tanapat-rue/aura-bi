@@ -15,6 +15,8 @@ const STEP_TYPES: { type: string; label: string; desc: string; color: string }[]
   { type: "calculated_field", label: "Calculate", desc: "Add computed column", color: "#f472b6" },
   { type: "group_aggregate", label: "Group By", desc: "Aggregate by columns", color: "#2dd4bf" },
   { type: "join", label: "Join", desc: "Combine two tables", color: "#818cf8" },
+  { type: "json_flatten", label: "JSON Flatten", desc: "Unnest array into rows", color: "#06b6d4" },
+  { type: "json_split", label: "JSON Split", desc: "Extract fields from JSON", color: "#0ea5e9" },
   { type: "limit", label: "Limit", desc: "Cap row count", color: "#94a3b8" },
   { type: "custom_sql", label: "Custom SQL", desc: "Write raw query", color: "#e879f9" },
 ];
@@ -31,6 +33,8 @@ function getDefaultStep(type: string): TransformStep {
     calculated_field: { type: "calculated_field", name: "", expression: "" },
     group_aggregate: { type: "group_aggregate", groupBy: [], aggregations: [] },
     join: { type: "join", rightTable: "", leftColumn: "", rightColumn: "", joinType: "INNER" },
+    json_flatten: { type: "json_flatten", column: "" },
+    json_split: { type: "json_split", column: "", fields: [""] },
     limit: { type: "limit", count: 1000 },
     custom_sql: { type: "custom_sql", sql: "" },
   };
@@ -43,11 +47,13 @@ function getStepMeta(type: string) {
 
 export function PipelineBuilder() {
   const {
-    activeTable, tables, pipelines, activePipelineId,
+    activeTable, tables, project,
     addPipeline, addStep, removeStep, setActivePipeline,
     previewData, setPreviewData, setProcessing, setTables,
     updatePipeline,
   } = useBIStore();
+  const pipelines = project.pipelines;
+  const activePipelineId = project.activePipelineId;
   const [showAddStep, setShowAddStep] = useState(false);
   const [error, setError] = useState("");
 

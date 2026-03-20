@@ -275,6 +275,59 @@ export function StepEditor({ step, tables, sourceTable, onChange }: Props) {
       );
     }
 
+    case "json_flatten":
+      return (
+        <div>
+          <Label>Column to flatten (JSON array or struct)</Label>
+          <ColSelect value={step.column} onChange={(v) => onChange({ ...step, column: v })} sourceTable={sourceTable} tables={tables} />
+          <div className="text-[10px] text-gray-600 mt-2 leading-relaxed">
+            Unnests a JSON array column so each element becomes its own row. Struct fields are expanded into separate columns.
+          </div>
+        </div>
+      );
+
+    case "json_split":
+      return (
+        <div className="space-y-2.5">
+          <div>
+            <Label>JSON / Struct column</Label>
+            <ColSelect value={step.column} onChange={(v) => onChange({ ...step, column: v })} sourceTable={sourceTable} tables={tables} />
+          </div>
+          <div>
+            <Label>Fields to extract</Label>
+            {step.fields.map((field, i) => (
+              <div key={i} className="flex gap-1.5 mb-1.5">
+                <input
+                  value={field}
+                  onChange={(e) => {
+                    const fields = [...step.fields];
+                    fields[i] = e.target.value;
+                    onChange({ ...step, fields });
+                  }}
+                  className="input-sm flex-1"
+                  placeholder="field_name"
+                />
+                <button
+                  onClick={() => onChange({ ...step, fields: step.fields.filter((_, j) => j !== i) })}
+                  className="text-gray-600 hover:text-red-400 transition p-1.5 rounded-md hover:bg-white/[0.04]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => onChange({ ...step, fields: [...step.fields, ""] })}
+              className="text-[11px] text-aura-400 hover:text-aura-300 transition font-medium"
+            >
+              + Add field
+            </button>
+          </div>
+          <div className="text-[10px] text-gray-600 leading-relaxed">
+            Extracts named fields from a JSON/struct column into separate columns using -&gt;&gt; operator.
+          </div>
+        </div>
+      );
+
     case "limit":
       return (
         <div>

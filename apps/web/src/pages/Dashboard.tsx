@@ -5,6 +5,7 @@ import { PipelineBuilder } from "@/components/PipelineBuilder";
 import { DashboardCanvas } from "@/components/DashboardCanvas";
 import { SQLEditor } from "@/components/SQLEditor";
 import { TableList } from "@/components/TableList";
+import { ProjectPanel } from "@/components/ProjectPanel";
 import { useBIStore } from "@/lib/store";
 
 const TABS = [
@@ -26,8 +27,11 @@ export function Dashboard() {
         <div className="p-3 border-b border-white/[0.04]">
           <FileDropzone />
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
           <TableList />
+          <div className="border-t border-white/[0.04] pt-3">
+            <ProjectPanel />
+          </div>
         </div>
         {isProcessing && (
           <div className="p-3 border-t border-white/[0.04] flex items-center gap-2 text-[13px] text-aura-400">

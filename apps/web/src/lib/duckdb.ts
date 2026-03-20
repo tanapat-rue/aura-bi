@@ -241,6 +241,8 @@ export type TransformStep =
   | { type: "group_aggregate"; groupBy: string[]; aggregations: { column: string; func: string; alias: string }[] }
   | { type: "join"; rightTable: string; leftColumn: string; rightColumn: string; joinType: "INNER" | "LEFT" | "RIGHT" | "FULL" }
   | { type: "limit"; count: number }
+  | { type: "json_flatten"; column: string }
+  | { type: "json_split"; column: string; fields: string[] }
   | { type: "custom_sql"; sql: string };
 
 export async function executePipeline(
@@ -338,6 +340,23 @@ export async function executePipeline(
       case "limit":
         stepSQL = `SELECT * FROM ${currentRef} LIMIT ${step.count}`;
         break;
+      case "json_flatten":
+        // Unnest a JSON array column into rows, and expand struct fields into columns
+        stepSQL = `SELECT * EXCLUDE ("${step.column}"), UNNEST("${step.column}") FROM ${currentRef}`;
+        break;
+      case "json_split": {
+        // Extract specific fields from a JSON/struct column into separate columns
+        const extracts = step.fields
+          .filter((f) => f)
+          .map((f) => `"${step.column}"->>'${f}' AS "${f}"`)
+          .join(", ");
+        if (extracts) {
+          stepSQL = `SELECT * EXCLUDE ("${step.column}"), ${extracts} FROM ${currentRef}`;
+        } else {
+          stepSQL = `SELECT * FROM ${currentRef}`;
+        }
+        break;
+      }
       case "custom_sql":
         stepSQL = step.sql.replace(/__SOURCE__/g, currentRef);
         break;

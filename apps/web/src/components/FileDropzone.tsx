@@ -5,7 +5,7 @@ import { useBIStore } from "@/lib/store";
 
 export function FileDropzone() {
   const [status, setStatus] = useState<string>("");
-  const { setTables, setActiveTable, setProcessing } = useBIStore();
+  const { setTables, setActiveTable, setProcessing, addDataSource } = useBIStore();
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -14,11 +14,22 @@ export function FileDropzone() {
         setStatus(`Loading ${file.name}...`);
         try {
           const tableName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_");
+          const ext = file.name.split(".").pop()?.toLowerCase() || "csv";
           const result = await ingestFile(file, tableName);
           setStatus(`${result.rowCount.toLocaleString()} rows loaded`);
+
           const tables = await listTables();
           setTables(tables);
           setActiveTable(tableName);
+
+          const tableInfo = tables.find((t) => t.name === tableName);
+          addDataSource({
+            name: tableName,
+            fileName: file.name,
+            fileType: ext,
+            rowCount: result.rowCount,
+            columns: tableInfo?.columns || [],
+          });
         } catch (err: any) {
           setStatus(`Error: ${err.message}`);
         } finally {
@@ -26,7 +37,7 @@ export function FileDropzone() {
         }
       }
     },
-    [setTables, setActiveTable, setProcessing]
+    [setTables, setActiveTable, setProcessing, addDataSource]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
