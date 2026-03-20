@@ -12,11 +12,18 @@ export type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS for the frontend
+// CORS - allow localhost in dev + any pages.dev or custom domain in prod
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "https://aura-bi.pages.dev"],
+    origin: (origin) => {
+      if (!origin) return "https://aura-bi.pages.dev";
+      if (origin.includes("localhost")) return origin;
+      if (origin.endsWith(".pages.dev")) return origin;
+      // Add your custom domain here:
+      // if (origin.endsWith("yourdomain.com")) return origin;
+      return "https://aura-bi.pages.dev";
+    },
     credentials: true,
   })
 );

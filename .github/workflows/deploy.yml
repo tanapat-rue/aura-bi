@@ -54,14 +54,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Copy DuckDB WASM files
-        run: |
-          mkdir -p apps/web/public/duckdb
-          cp node_modules/@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm apps/web/public/duckdb/
-          cp node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js apps/web/public/duckdb/
-          cp node_modules/@duckdb/duckdb-wasm/dist/duckdb-eh.wasm apps/web/public/duckdb/
-          cp node_modules/@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js apps/web/public/duckdb/
-
       - name: Build Web
         run: pnpm --filter @aura-bi/web build
 

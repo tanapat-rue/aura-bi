@@ -3,22 +3,33 @@ import * as duckdb from "@duckdb/duckdb-wasm";
 let db: duckdb.AsyncDuckDB | null = null;
 let conn: duckdb.AsyncDuckDBConnection | null = null;
 
+// Fetch a CDN script and create a same-origin Blob URL for Worker construction
+async function createWorkerFromCDN(url: string): Promise<Worker> {
+  const res = await fetch(url);
+  const text = await res.text();
+  const blob = new Blob([text], { type: "application/javascript" });
+  return new Worker(URL.createObjectURL(blob));
+}
+
+const DUCKDB_VERSION = "1.29.0";
+const CDN = `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist`;
+
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
   if (db) return db;
 
-  const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
+  const BUNDLES: duckdb.DuckDBBundles = {
     mvp: {
-      mainModule: new URL("/duckdb/duckdb-mvp.wasm", window.location.origin).href,
-      mainWorker: new URL("/duckdb/duckdb-browser-mvp.worker.js", window.location.origin).href,
+      mainModule: `${CDN}/duckdb-mvp.wasm`,
+      mainWorker: `${CDN}/duckdb-browser-mvp.worker.js`,
     },
     eh: {
-      mainModule: new URL("/duckdb/duckdb-eh.wasm", window.location.origin).href,
-      mainWorker: new URL("/duckdb/duckdb-browser-eh.worker.js", window.location.origin).href,
+      mainModule: `${CDN}/duckdb-eh.wasm`,
+      mainWorker: `${CDN}/duckdb-browser-eh.worker.js`,
     },
   };
 
-  const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-  const worker = new Worker(bundle.mainWorker!);
+  const bundle = await duckdb.selectBundle(BUNDLES);
+  const worker = await createWorkerFromCDN(bundle.mainWorker!);
   const logger = new duckdb.ConsoleLogger();
 
   db = new duckdb.AsyncDuckDB(logger, worker);

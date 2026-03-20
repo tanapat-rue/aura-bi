@@ -8,4 +8,4 @@ port = 8787
 [[d1_databases]]
 binding = "DB"
 database_name = "aura-db"
-database_id = "placeholder-replace-after-create"
+database_id = "a5f85303-5c48-403f-80c6-b9221319a488"
