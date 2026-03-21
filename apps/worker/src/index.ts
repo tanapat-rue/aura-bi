@@ -17,12 +17,11 @@ app.use(
   "*",
   cors({
     origin: (origin) => {
-      if (!origin) return "https://aura-bi.pages.dev";
+      if (!origin) return "https://aura.inbrowserapp.work";
       if (origin.includes("localhost")) return origin;
       if (origin.endsWith(".pages.dev")) return origin;
-      // Add your custom domain here:
-      // if (origin.endsWith("yourdomain.com")) return origin;
-      return "https://aura-bi.pages.dev";
+      if (origin.endsWith(".inbrowserapp.work")) return origin;
+      return "https://aura.inbrowserapp.work";
     },
     credentials: true,
   })
