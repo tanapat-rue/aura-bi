@@ -1,9 +1,12 @@
 name: Deploy to Cloudflare
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      run_migrations:
+        description: Run D1 migrations
+        type: boolean
+        default: false
 
 jobs:
   deploy-worker:
@@ -24,6 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Run D1 Migrations
+        if: ${{ inputs.run_migrations }}
         working-directory: apps/worker
         run: npx wrangler d1 execute aura-db --remote --file=migrations/0001_init.sql
         env:
