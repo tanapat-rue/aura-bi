@@ -6,7 +6,7 @@ compatibility_date = "2024-12-01"
 port = 8787
 
 [[routes]]
-pattern = "aura-api.inbrowserapp.work/*"
+pattern = "aura-api.inbrowserapp.work"
 custom_domain = true
 
 [[d1_databases]]
