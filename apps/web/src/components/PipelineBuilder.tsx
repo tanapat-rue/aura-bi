@@ -19,7 +19,9 @@ const STEP_TYPES: { type: string; label: string; desc: string; color: string }[]
   { type: "json_split", label: "JSON Split", desc: "Extract fields from JSON", color: "#0ea5e9" },
   { type: "limit", label: "Limit", desc: "Cap row count", color: "#94a3b8" },
   { type: "custom_sql", label: "Custom SQL", desc: "Write raw query", color: "#e879f9" },
-];
+  { type: "python_script", label: "Python Script", desc: "Run Pyodide Pandas", color: "#fbbf24" },
+  { type: "js_script", label: "JS Script", desc: "Run JavaScript map", color: "#fde047" }
+] as const;
 
 function getDefaultStep(type: string): TransformStep {
   const map: Record<string, TransformStep> = {
@@ -37,6 +39,8 @@ function getDefaultStep(type: string): TransformStep {
     json_split: { type: "json_split", column: "", fields: [""] },
     limit: { type: "limit", count: 1000 },
     custom_sql: { type: "custom_sql", sql: "" },
+    python_script: { type: "python_script", code: "" },
+    js_script: { type: "js_script", code: "" },
   };
   return map[type] || { type: "filter", column: "", operator: "=", value: "" };
 }

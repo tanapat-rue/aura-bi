@@ -12,10 +12,10 @@ export function Navbar() {
     <nav className="border-b border-white/[0.04] bg-surface-0/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="max-w-[1600px] mx-auto px-5 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aura-500 to-aura-700 flex items-center justify-center font-bold text-white text-sm shadow-glow group-hover:shadow-glow-lg transition-shadow">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aura-500 to-aura-700 flex items-center justify-center font-display font-bold text-white text-sm shadow-glow group-hover:shadow-glow-lg transition-shadow">
             A
           </div>
-          <span className="font-semibold text-[15px] tracking-tight">
+          <span className="font-display font-semibold text-[17px] tracking-tight">
             Aura<span className="text-aura-400">BI</span>
           </span>
         </Link>

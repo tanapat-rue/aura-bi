@@ -38,9 +38,9 @@ export function WidgetRenderer({ widget, globalFilters, onEdit, onRemove, isEdit
 
   return (
     <div
-      className={`group relative rounded-2xl flex flex-col transition-all duration-300
-        ${isEditing ? "ring-2 ring-aura-500/50" : ""}
-        border border-white/[0.05] hover:border-white/[0.1]`}
+      className={`group relative rounded-2xl flex flex-col transition-all duration-400
+        ${isEditing ? "ring-2 ring-aura-500/50 -translate-y-1 shadow-glow" : "hover:-translate-y-1 hover:shadow-card-hover hover:ring-1 hover:ring-white/[0.1]"}
+        border border-white/[0.05]`}
       style={{ height: widget.h, background: "linear-gradient(135deg, rgba(20,20,28,0.9) 0%, rgba(14,14,20,0.95) 100%)", boxShadow: "0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)" }}
     >
       {/* Widget header */}
@@ -244,9 +244,6 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
 }) {
   if (data.rows.length === 0) return <EmptyState />;
 
-  const dimCol = data.columns[0];
-  const metricCols = data.columns.slice(1);
-  const labels = data.rows.map((r) => String(r[dimCol]));
   const isHorizontal = widget.type === "bar" || widget.type === "stacked_bar";
   const isStacked = widget.type.startsWith("stacked_");
   const smooth = widget.style.smooth !== false;
@@ -276,31 +273,65 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
     line: "line", area: "line", stacked_area: "line", combo: "bar",
   };
 
-  const series = metricCols.map((col, i) => {
-    let type = chartTypeMap[widget.type] || "bar";
-    if (widget.type === "combo" && i > 0) type = "line";
-    const isArea = widget.type === "area" || widget.type === "stacked_area" || (widget.type === "combo" && i > 0);
-    const color = palette[i % palette.length];
-
-    return {
-      name: col,
-      type,
-      data: data.rows.map((r) => Number(r[col])),
-      stack: isStacked ? "total" : undefined,
-      smooth,
-      symbol: type === "line" ? "circle" : undefined,
-      symbolSize: type === "line" ? 4 : undefined,
-      areaStyle: isArea ? { opacity: 0.15, color: gradient ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + "40" }, { offset: 1, color: color + "05" }] } : color + "20" } : undefined,
-      itemStyle: {
-        color: gradient && type === "bar" ? { type: "linear", x: 0, y: isHorizontal ? 0 : 1, x2: isHorizontal ? 1 : 0, y2: 0, colorStops: [{ offset: 0, color: color + "cc" }, { offset: 1, color }] } : color,
-        borderRadius: type === "bar" ? (isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined,
-        shadowBlur: type === "bar" ? 4 : 0,
-        shadowColor: color + "30",
-      },
-      lineStyle: type === "line" ? { width: 2.5, shadowBlur: 6, shadowColor: color + "40" } : undefined,
-      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: color + "60" } },
-    };
+  const getSeriesStyle = (type: string, isArea: boolean, color: string) => ({
+    stack: isStacked ? "total" : undefined,
+    smooth,
+    symbol: type === "line" ? "circle" : undefined,
+    symbolSize: type === "line" ? 4 : undefined,
+    areaStyle: isArea ? { opacity: 0.15, color: gradient ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + "40" }, { offset: 1, color: color + "05" }] } : color + "20" } : undefined,
+    itemStyle: {
+      color: gradient && type === "bar" ? { type: "linear", x: 0, y: isHorizontal ? 0 : 1, x2: isHorizontal ? 1 : 0, y2: 0, colorStops: [{ offset: 0, color: color + "cc" }, { offset: 1, color }] } : color,
+      borderRadius: type === "bar" ? (isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined,
+      shadowBlur: type === "bar" ? 4 : 0,
+      shadowColor: color + "30",
+    },
+    lineStyle: type === "line" ? { width: 2.5, shadowBlur: 6, shadowColor: color + "40" } : undefined,
+    emphasis: { itemStyle: { shadowBlur: 12, shadowColor: color + "60" } },
   });
+
+  const activeDims = widget.dimensions.filter((d) => d.column);
+  let labels: string[] = [];
+  let seriesNames: string[] = [];
+  let series: any[] = [];
+
+  if (activeDims.length >= 2) {
+    const dimCol1 = data.columns[0];
+    const dimCol2 = data.columns[1];
+    const metricCol = data.columns[2] || data.columns[1];
+    
+    labels = [...new Set(data.rows.map((r) => String(r[dimCol1])))];
+    seriesNames = [...new Set(data.rows.map((r) => String(r[dimCol2])))];
+    
+    series = seriesNames.map((sName, i) => {
+      let type = chartTypeMap[widget.type] || "bar";
+      if (widget.type === "combo" && i > 0) type = "line";
+      const isArea = widget.type === "area" || widget.type === "stacked_area" || (widget.type === "combo" && i > 0);
+      const color = palette[i % palette.length];
+
+      const sData = labels.map((lbl) => {
+        const row = data.rows.find((r) => String(r[dimCol1]) === lbl && String(r[dimCol2]) === sName);
+        return row ? Number(row[metricCol]) : 0;
+      });
+
+      return { name: sName, type, data: sData, ...getSeriesStyle(type, isArea, color) };
+    });
+  } else {
+    const dimCol = data.columns[0] || "total";
+    const metricCols = data.columns.slice(1);
+    const mCols = metricCols.length > 0 ? metricCols : [dimCol];
+    seriesNames = mCols;
+    
+    labels = data.rows.map((r) => String(r[dimCol]));
+    
+    series = mCols.map((col, i) => {
+      let type = chartTypeMap[widget.type] || "bar";
+      if (widget.type === "combo" && i > 0) type = "line";
+      const isArea = widget.type === "area" || widget.type === "stacked_area" || (widget.type === "combo" && i > 0);
+      const color = palette[i % palette.length];
+
+      return { name: col, type, data: data.rows.map((r) => Number(r[col])), ...getSeriesStyle(type, isArea, color) };
+    });
+  }
 
   const categoryAxis = {
     type: "category" as const,
@@ -334,8 +365,8 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
           textStyle: { color: "#e5e7eb", fontSize: 12 },
           axisPointer: { type: "shadow", shadowStyle: { color: "rgba(255,255,255,0.02)" } },
         },
-        legend: widget.style.showLegend && metricCols.length > 1 ? {
-          data: metricCols,
+        legend: widget.style.showLegend && seriesNames.length > 1 ? {
+          data: seriesNames,
           textStyle: { color: "#9ca3af", fontSize: 11 },
           bottom: 0,
           itemWidth: 12,
@@ -344,7 +375,7 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
         } : undefined,
         grid: {
           left: "8%", right: "4%",
-          bottom: metricCols.length > 1 && widget.style.showLegend ? "18%" : "10%",
+          bottom: seriesNames.length > 1 && widget.style.showLegend ? "18%" : "10%",
           top: "8%",
           containLabel: true,
         },

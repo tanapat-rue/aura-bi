@@ -21,10 +21,14 @@ export function Dashboard() {
   const isFullWidth = viewMode === "chart";
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
+    <div className="flex h-[calc(100vh-3.5rem)] relative overflow-hidden bg-surface-0">
+      {/* Ambient Background Glows */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-aura-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent-purple/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
+
       {/* Sidebar */}
-      <aside className="w-56 border-r border-white/[0.04] bg-surface-1/50 flex flex-col overflow-hidden shrink-0">
-        <div className="p-3 border-b border-white/[0.04]">
+      <aside className="w-64 border-r border-white-[0.03] bg-surface-1/40 backdrop-blur-3xl flex flex-col overflow-hidden shrink-0 relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
+        <div className="p-4 border-b border-white/[0.04]">
           <FileDropzone />
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-4">
@@ -42,20 +46,23 @@ export function Dashboard() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Tabs */}
-        <div className="border-b border-white/[0.04] px-2 flex gap-0.5 bg-surface-1/30">
+        <div className="border-b border-white/[0.03] px-3 flex gap-1 bg-surface-0/20 backdrop-blur-xl">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setViewMode(t.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-[13px] font-medium transition-all duration-200 border-b-2 -mb-px ${
+              className={`flex items-center gap-2.5 px-4 py-3.5 text-[13px] font-semibold transition-all duration-300 border-b-2 -mb-px relative overflow-hidden group ${
                 viewMode === t.key
-                  ? "border-aura-500 text-aura-400"
-                  : "border-transparent text-gray-500 hover:text-gray-300"
+                  ? "border-aura-500 text-aura-300"
+                  : "border-transparent text-gray-400 hover:text-gray-200 hover:border-white/[0.08]"
               }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {viewMode === t.key && (
+                <div className="absolute inset-0 bg-gradient-to-t from-aura-500/10 to-transparent pointer-events-none" />
+              )}
+              <svg className={`w-4 h-4 transition-colors duration-300 ${viewMode === t.key ? "text-aura-400" : "text-gray-500 group-hover:text-gray-300"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={t.icon} />
               </svg>
               {t.label}
@@ -73,8 +80,8 @@ export function Dashboard() {
                 </svg>
               </div>
               <div>
-                <p className="text-[15px] font-medium text-gray-300">Drop a CSV to get started</p>
-                <p className="text-xs text-gray-600 mt-1.5 max-w-[300px] mx-auto leading-relaxed">
+                <p className="font-display text-lg font-semibold text-gray-200">Drop a CSV to get started</p>
+                <p className="text-[13px] text-gray-500 mt-2 max-w-[320px] mx-auto leading-relaxed">
                   Profile, clean, transform, and build dashboards - all processing happens locally in your browser.
                 </p>
               </div>

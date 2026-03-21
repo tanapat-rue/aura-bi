@@ -254,13 +254,33 @@ export type TransformStep =
   | { type: "limit"; count: number }
   | { type: "json_flatten"; column: string }
   | { type: "json_split"; column: string; fields: string[] }
-  | { type: "custom_sql"; sql: string };
+  | { type: "custom_sql"; sql: string }
+  | { type: "python_script"; code: string }
+  | { type: "js_script"; code: string };
+
+let pyodideInstance: any = null;
+async function getPyodide() {
+  if (pyodideInstance) return pyodideInstance;
+  if (!(window as any).loadPyodide) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  pyodideInstance = await (window as any).loadPyodide();
+  await pyodideInstance.loadPackage("pandas");
+  return pyodideInstance;
+}
 
 export async function executePipeline(
   sourceTable: string,
   steps: TransformStep[],
   outputTable?: string
 ): Promise<{ columns: string[]; rows: any[]; rowCount: number; sql: string }> {
+  const database = await initDuckDB();
   const connection = await getConnection();
 
   // Build the SQL chain using CTEs
@@ -371,6 +391,55 @@ export async function executePipeline(
       case "custom_sql":
         stepSQL = step.sql.replace(/__SOURCE__/g, currentRef);
         break;
+      case "python_script":
+      case "js_script": {
+        // Materialize CTEs so far into an array of objects
+        if (stepSQL) {
+          ctes.push(`${stepAlias}_pre AS (${stepSQL})`);
+          currentRef = `${stepAlias}_pre`;
+        }
+        
+        const tempSQL = ctes.length > 0 ? `WITH ${ctes.join(",\n")} SELECT * FROM ${currentRef}` : `SELECT * FROM ${currentRef}`;
+        const tempRes = await connection.query(tempSQL);
+        let data = tempRes.toArray().map((r: any) => ({ ...r }));
+
+        if (step.type === "js_script") {
+          const fn = new Function("data", step.code);
+          data = await fn(data);
+        } else {
+          const pyodide = await getPyodide();
+          (window as any).__tempData = data;
+          const pyCode = `
+import json
+from js import __tempData
+import pandas as pd
+df = pd.DataFrame(__tempData.to_py())
+def run_script():
+${step.code.split('\n').map((l: string) => '    ' + l).join('\n')}
+result_df = run_script()
+if result_df is None:
+    result_df = df
+result_df.to_json(orient='records')
+`;
+          const outJson = await pyodide.runPythonAsync(pyCode);
+          data = JSON.parse(outJson);
+        }
+
+        // Register new JSON file in DuckDB for the mutated data
+        const newTableRef = `__pipeline_temp_${i}`;
+        const blob = new Blob([data.map((r:any) => JSON.stringify(r)).join('\n')], { type: "application/jsonlines" });
+        const fileName = `temp_${i}_${Date.now()}.jsonl`;
+        const buffer = await blob.arrayBuffer();
+        await database.registerFileBuffer(fileName, new Uint8Array(buffer));
+        
+        // Reset CTEs and currentRef because the data is now materialized in a fresh DuckDB table!
+        ctes.length = 0;
+        currentRef = `"${newTableRef}"`;
+        await connection.query(`CREATE OR REPLACE TABLE "${newTableRef}" AS SELECT * FROM read_json_auto('${fileName}')`);
+        
+        stepSQL = "";
+        break;
+      }
       default:
         continue;
     }

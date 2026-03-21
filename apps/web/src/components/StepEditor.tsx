@@ -340,7 +340,31 @@ export function StepEditor({ step, tables, sourceTable, onChange }: Props) {
       return (
         <div>
           <Label>SQL (use __SOURCE__ for current data)</Label>
-          <textarea value={step.sql} onChange={(e) => onChange({ ...step, sql: e.target.value })} className="input-sm w-full h-20 font-mono resize-none" placeholder="SELECT *, UPPER(name) as name_upper FROM __SOURCE__" />
+          <textarea value={(step as any).sql} onChange={(e) => onChange({ ...step, sql: e.target.value } as any)} className="input-sm w-full h-32 font-mono resize-none" placeholder="SELECT *, UPPER(name) as name_upper FROM __SOURCE__" />
+        </div>
+      );
+
+    case "python_script":
+      return (
+        <div>
+          <Label>Python Script (Pyodide)</Label>
+          <div className="text-[10px] text-gray-500 mb-2">
+            The input dataframe is available as <code>df</code> (a Pandas DataFrame). You must return a Pandas DataFrame.
+            <br />Example: <code>df['new_col'] = df['old_col'] * 2<br/>return df</code>
+          </div>
+          <textarea value={(step as any).code} onChange={(e) => onChange({ ...step, code: e.target.value } as any)} className="input-sm w-full h-40 font-mono resize-none bg-[#0e0e14] text-aura-300" placeholder="import pandas as pd&#10;# df is already populated&#10;df['new'] = df['id'] + 1&#10;return df" spellCheck={false} />
+        </div>
+      );
+
+    case "js_script":
+      return (
+        <div>
+          <Label>JavaScript Script</Label>
+          <div className="text-[10px] text-gray-500 mb-2">
+            The input data is an array of objects available as <code>data</code>. You must return an array of objects.
+            <br />Example: <code>{"return data.map(row => ({ ...row, new_col: row.val * 2 }));"}</code>
+          </div>
+          <textarea value={(step as any).code} onChange={(e) => onChange({ ...step, code: e.target.value } as any)} className="input-sm w-full h-40 font-mono resize-none bg-[#0e0e14] text-accent-cyan" placeholder="return data.map(r => {&#10;  r.new_col = r.id + 1;&#10;  return r;&#10;});" spellCheck={false} />
         </div>
       );
 

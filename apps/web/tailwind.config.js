@@ -3,10 +3,11 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   darkMode: "class",
   theme: {
-    fontFamily: {
-      sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-      mono: ["JetBrains Mono", "Menlo", "monospace"],
-    },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        display: ["Outfit", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "Menlo", "monospace"],
+      },
     extend: {
       colors: {
         surface: {
