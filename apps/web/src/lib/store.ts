@@ -130,6 +130,8 @@ interface BIStore {
   // ─── View ───────────────────────────────────
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebar: () => void;
 
   // ─── Project (persisted) ────────────────────
   project: Project;
@@ -196,6 +198,8 @@ export const useBIStore = create<BIStore>()(
       // ─── View ─────────────────────────────────
       viewMode: "data",
       setViewMode: (mode) => set({ viewMode: mode }),
+      isSidebarCollapsed: false,
+      toggleSidebar: () => set((s) => ({ isSidebarCollapsed: !s.isSidebarCollapsed })),
 
       // ─── Project ──────────────────────────────
       project: createEmptyProject(),
@@ -387,6 +391,7 @@ export const useBIStore = create<BIStore>()(
         project: state.project,
         savedProjects: state.savedProjects,
         viewMode: state.viewMode,
+        isSidebarCollapsed: state.isSidebarCollapsed,
       }),
     }
   )

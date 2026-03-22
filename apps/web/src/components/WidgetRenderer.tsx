@@ -59,7 +59,17 @@ export function WidgetRenderer({ widget, globalFilters, onEdit, onRemove, isEdit
       {/* Body - takes all remaining space */}
       <div className="px-3 pb-3 flex-1 min-h-0 overflow-hidden">
         {loading && <LoadingSkeleton type={widget.type} />}
-        {error && <div className="text-red-400/80 text-xs bg-red-500/[0.06] rounded-lg px-3 py-2 border border-red-500/10">{error}</div>}
+        {error && (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-fade-in">
+            <svg className="w-8 h-8 text-red-500/80 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div className="text-red-400 font-semibold text-[11px] uppercase tracking-wider mb-1">Query Error</div>
+            <div className="text-gray-500 text-[10px] leading-relaxed max-w-full overflow-hidden text-ellipsis display-webkit-box webkit-line-clamp-3 webkit-box-orient-vertical">
+              {error.includes("does not exist") ? (
+                <>The table <span className="text-gray-300 font-mono">"{widget.dataSource}"</span> is missing or hasn't been imported.<br/><br/><button onClick={onEdit} className="font-bold text-aura-400 hover:text-aura-300 hover:underline px-3 py-1.5 rounded-md bg-aura-500/10 border border-aura-500/20 transition cursor-pointer">Reconfigure Data Source</button></>
+              ) : error}
+            </div>
+          </div>
+        )}
         {!loading && !error && data && renderContent(widget, data, palette, onCrossFilter)}
         {!loading && !error && !data && (
           <div className="flex items-center justify-center h-full">

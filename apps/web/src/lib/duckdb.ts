@@ -240,7 +240,7 @@ export async function profileTable(tableName: string): Promise<ColumnProfile[]> 
 
 // ─── ETL Pipeline Execution ──────────────────────────────────
 
-export type TransformStep =
+export type BaseStep =
   | { type: "filter"; column: string; operator: string; value: string }
   | { type: "drop_columns"; columns: string[] }
   | { type: "rename_column"; oldName: string; newName: string }
@@ -257,6 +257,8 @@ export type TransformStep =
   | { type: "custom_sql"; sql: string }
   | { type: "python_script"; code: string }
   | { type: "js_script"; code: string };
+
+export type TransformStep = BaseStep & { hidden?: boolean };
 
 let pyodideInstance: any = null;
 async function getPyodide() {
@@ -290,7 +292,9 @@ export async function executePipeline(
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    const stepAlias = `step_${i}`;
+    if (step.hidden) continue;
+
+    const stepAlias = `__step_${i}`;
     let stepSQL = "";
 
     switch (step.type) {

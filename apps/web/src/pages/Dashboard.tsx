@@ -17,7 +17,7 @@ const TABS = [
 ] as const;
 
 export function Dashboard() {
-  const { tables, viewMode, setViewMode, isProcessing } = useBIStore();
+  const { tables, viewMode, setViewMode, isProcessing, isSidebarCollapsed, toggleSidebar } = useBIStore();
   const isFullWidth = viewMode === "chart";
 
   return (
@@ -27,23 +27,38 @@ export function Dashboard() {
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent-purple/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
 
       {/* Sidebar */}
-      <aside className="w-64 border-r border-white-[0.03] bg-surface-1/40 backdrop-blur-3xl flex flex-col overflow-hidden shrink-0 relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
-        <div className="p-4 border-b border-white/[0.04]">
+      <aside className={`border-r border-white-[0.03] bg-surface-1/40 backdrop-blur-3xl flex flex-col overflow-hidden shrink-0 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.2)] transition-all duration-300 ${isSidebarCollapsed ? 'w-0 border-none' : 'w-64'}`}>
+        <div className="p-4 border-b border-white/[0.04] min-w-[16rem]">
           <FileDropzone />
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 min-w-[16rem]">
           <TableList />
           <div className="border-t border-white/[0.04] pt-3">
             <ProjectPanel />
           </div>
         </div>
         {isProcessing && (
-          <div className="p-3 border-t border-white/[0.04] flex items-center gap-2 text-[13px] text-aura-400">
+          <div className="p-3 border-t border-white/[0.04] flex items-center gap-2 text-[13px] text-aura-400 min-w-[16rem]">
             <div className="w-3 h-3 border-2 border-aura-400 border-t-transparent rounded-full animate-spin" />
             Processing...
           </div>
         )}
       </aside>
+
+      {/* Toggle Button */}
+      <div className={`absolute left-0 top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ${isSidebarCollapsed ? 'translate-x-0' : 'translate-x-64'}`}>
+        <button
+          onClick={toggleSidebar}
+          className="w-5 h-16 bg-surface-2/95 hover:bg-surface-3 border border-white/[0.08] border-l-0 rounded-r-xl flex items-center justify-center text-gray-500 hover:text-aura-400 transition shadow-lg backdrop-blur-md cursor-pointer group"
+          title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isSidebarCollapsed ? (
+            <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+          ) : (
+            <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+          )}
+        </button>
+      </div>
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
