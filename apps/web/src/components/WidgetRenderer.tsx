@@ -140,18 +140,35 @@ function Scorecard({ widget, data }: { widget: Widget; data: WidgetQueryResult }
   const comp = data.comparisonScalar;
   const delta = comp != null ? value - comp : null;
   const deltaPct = comp != null && comp !== 0 ? ((value - comp) / Math.abs(comp)) * 100 : null;
+  const isPositive = delta != null && delta >= 0;
 
   return (
-    <div className="flex flex-col items-center justify-center py-3 animate-fade-in">
-      <div className="text-4xl font-bold text-white tracking-tight">{formatted}</div>
-      <div className="text-xs text-gray-500 mt-1.5 font-medium uppercase tracking-wider">{label}</div>
+    <div className="flex flex-col items-center justify-center gap-2 py-2 animate-fade-in w-full min-h-0">
+      {/* Label */}
+      <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-[0.12em] text-center px-2 truncate max-w-full">
+        {label}
+      </div>
+
+      {/* Main value */}
+      <div className="text-4xl sm:text-5xl font-bold text-white tracking-tight leading-none text-center">
+        {formatted}
+      </div>
+
+      {/* Delta badge */}
       {delta != null && (
-        <div className={`flex items-center gap-1 mt-2 text-sm font-medium ${delta >= 0 ? "text-accent-green" : "text-accent-red"}`}>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            isPositive
+              ? "text-emerald-300 bg-emerald-500/10 border border-emerald-500/20"
+              : "text-red-300 bg-red-500/10 border border-red-500/20"
+          }`}
+        >
+          <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-              d={delta >= 0 ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+              d={isPositive ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
           </svg>
           {deltaPct != null ? `${Math.abs(deltaPct).toFixed(1)}%` : Math.abs(delta).toLocaleString()}
+          <span className="text-[10px] opacity-60">vs prev</span>
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@ import type { Widget, WidgetFilter, WidgetType } from "@/lib/widget-types";
 import { WIDGET_CATALOG, createDefaultWidget } from "@/lib/widget-types";
 import { WidgetRenderer } from "./WidgetRenderer";
 import { WidgetConfigPanel } from "./WidgetConfigPanel";
+import { WidgetPicker } from "./WidgetPicker";
 import { useBIStore } from "@/lib/store";
 
 export function DashboardCanvas() {
@@ -145,23 +146,10 @@ export function DashboardCanvas() {
           {/* Add Widget */}
           <div className="relative shrink-0">
             <button onClick={() => setShowAddMenu(!showAddMenu)} className="btn-primary text-xs py-1.5">+ Widget</button>
-            {showAddMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowAddMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-xl overflow-hidden z-50 py-2 animate-slide-up" style={{ background: "linear-gradient(135deg, #18182a 0%, #12121e 100%)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
-                  {categories.map((cat) => (
-                    <div key={cat.key}>
-                      <div className="text-[10px] text-gray-600 uppercase tracking-wider px-3 pt-2 pb-1">{cat.label}</div>
-                      {cat.types.map((c) => (
-                        <button key={c.type} onClick={() => addWidget(c.type)} className="w-full text-left px-3 py-1.5 text-[13px] text-gray-300 hover:bg-white/[0.04] hover:text-white transition">{c.label}</button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         </div>
+
+        {showAddMenu && <WidgetPicker onAdd={addWidget} onClose={() => setShowAddMenu(false)} />}
 
         {/* Grid */}
         <div className="flex-1 overflow-auto p-5 bg-surface-0">
