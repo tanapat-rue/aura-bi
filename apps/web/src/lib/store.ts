@@ -190,7 +190,15 @@ export const useBIStore = create<BIStore>()(
       previewData: null,
 
       setTables: (tables) => set({ tables }),
-      setActiveTable: (name) => set({ activeTable: name }),
+      setActiveTable: (name) => set((s) => {
+        const activePipeline = s.project.pipelines.find((p) => p.id === s.project.activePipelineId);
+        const newPipelineId = activePipeline?.sourceTable === name ? activePipeline.id : null;
+        return {
+          activeTable: name,
+          project: touchProject({ ...s.project, activePipelineId: newPipelineId }),
+          previewData: null,
+        };
+      }),
       setProcessing: (v) => set({ isProcessing: v }),
       setProfiles: (table, profiles) => set((s) => ({ profiles: { ...s.profiles, [table]: profiles } })),
       setPreviewData: (data) => set({ previewData: data }),
