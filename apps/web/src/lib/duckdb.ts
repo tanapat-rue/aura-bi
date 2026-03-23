@@ -1,39 +1,47 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
+import { opfs } from "./fs";
+
+import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
+import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
+import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 
 let db: duckdb.AsyncDuckDB | null = null;
 let conn: duckdb.AsyncDuckDBConnection | null = null;
-
-// Fetch a CDN script and create a same-origin Blob URL for Worker construction
-async function createWorkerFromCDN(url: string): Promise<Worker> {
-  const res = await fetch(url);
-  const text = await res.text();
-  const blob = new Blob([text], { type: "application/javascript" });
-  return new Worker(URL.createObjectURL(blob));
-}
-
-const DUCKDB_VERSION = "1.29.0";
-const CDN = `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist`;
 
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
   if (db) return db;
 
   const BUNDLES: duckdb.DuckDBBundles = {
     mvp: {
-      mainModule: `${CDN}/duckdb-mvp.wasm`,
-      mainWorker: `${CDN}/duckdb-browser-mvp.worker.js`,
+      mainModule: duckdb_wasm,
+      mainWorker: mvp_worker,
     },
     eh: {
-      mainModule: `${CDN}/duckdb-eh.wasm`,
-      mainWorker: `${CDN}/duckdb-browser-eh.worker.js`,
+      mainModule: duckdb_wasm_eh,
+      mainWorker: eh_worker,
     },
   };
 
   const bundle = await duckdb.selectBundle(BUNDLES);
-  const worker = await createWorkerFromCDN(bundle.mainWorker!);
+  const worker = new Worker(bundle.mainWorker!);
   const logger = new duckdb.ConsoleLogger();
 
   db = new duckdb.AsyncDuckDB(logger, worker);
   await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+  // Restore raw data from OPFS (Local Storage)
+  try {
+    const files = await opfs.listFiles();
+    for (const f of files) {
+      const data = await opfs.getFile(f.name);
+      if (data) {
+        await db.registerFileBuffer(f.name, data);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to restore OPFS files into DuckDB:", err);
+  }
 
   return db;
 }
@@ -57,7 +65,12 @@ export async function ingestFile(
   const ext = file.name.split(".").pop()?.toLowerCase();
 
   const buffer = await file.arrayBuffer();
-  await database.registerFileBuffer(file.name, new Uint8Array(buffer));
+  const uint8Data = new Uint8Array(buffer);
+  
+  // Persist the raw data to OPFS so it survives reloads
+  await opfs.saveFile(file.name, uint8Data);
+  
+  await database.registerFileBuffer(file.name, uint8Data);
 
   let readExpr: string;
   if (ext === "json" || ext === "jsonl" || ext === "ndjson") {

@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { TransformStep, ColumnProfile } from "./duckdb";
+import { initDuckDB, listTables, getConnection } from "./duckdb";
 import type { Widget, WidgetFilter } from "./widget-types";
+import { opfs, downloadAurabiFile, parseAurabiFile } from "./fs";
 
 // ─── Auth Store ──────────────────────────────────────────────
 
@@ -145,6 +147,9 @@ interface BIStore {
   deleteProject: (id: string) => void;
   exportProject: () => string;
   importProject: (json: string) => void;
+  exportProjectFile: (includeData: boolean) => Promise<void>;
+  importProjectFile: (file: File) => Promise<void>;
+  restoreEnvironment: () => Promise<void>;
 
   // Data sources
   addDataSource: (ds: DataSourceRef) => void;
@@ -246,6 +251,73 @@ export const useBIStore = create<BIStore>()(
         p.id = crypto.randomUUID(); // new ID to avoid conflicts
         p.updatedAt = new Date().toISOString();
         set({ project: p });
+      },
+
+      exportProjectFile: async (includeData: boolean) => {
+        const { project } = get();
+        const stateJson = JSON.stringify(project, null, 2);
+        await downloadAurabiFile(project.name, stateJson, includeData);
+      },
+
+      importProjectFile: async (file: File) => {
+        set({ isProcessing: true });
+        try {
+          const { metadataJson, filesToRestore } = await parseAurabiFile(file);
+          
+          if (filesToRestore && filesToRestore.length > 0) {
+            // Restore actual raw data files to OPFS
+            const database = await initDuckDB();
+            for (const f of filesToRestore) {
+              await opfs.saveFile(f.name, f.data);
+              await database.registerFileBuffer(f.name, f.data);
+            }
+          }
+          
+          const p = JSON.parse(metadataJson) as Project;
+          p.id = crypto.randomUUID(); // new ID to avoid conflicts
+          p.updatedAt = new Date().toISOString();
+          set({ project: p });
+          // Call restoreEnvironment to reconstruct the tables right after import!
+          get().restoreEnvironment();
+        } catch (err) {
+          console.error("Failed to import project:", err);
+          alert("Failed to import project file.");
+        } finally {
+          set({ isProcessing: false });
+        }
+      },
+
+      restoreEnvironment: async () => {
+        const { project, setProcessing, setTables } = get();
+        if (!project.dataSources || project.dataSources.length === 0) return;
+        
+        setProcessing(true);
+        try {
+          await initDuckDB();
+          const connection = await getConnection();
+          
+          for (const ds of project.dataSources) {
+            const ext = ds.fileName.split(".").pop()?.toLowerCase();
+            let readExpr = `read_csv_auto('${ds.fileName}')`;
+            if (ext === "json" || ext === "jsonl" || ext === "ndjson") {
+              readExpr = `read_json_auto('${ds.fileName}')`;
+            } else if (ext === "parquet") {
+              readExpr = `read_parquet('${ds.fileName}')`;
+            }
+            try {
+              await connection.query(`CREATE OR REPLACE TABLE "${ds.name}" AS SELECT * FROM ${readExpr}`);
+            } catch (e) {
+              console.warn(`Failed to restore table ${ds.name} from OPFS (buffer might be missing)`, e);
+            }
+          }
+          
+          const tables = await listTables();
+          setTables(tables);
+        } catch (err) {
+          console.error("Failed to restore environment", err);
+        } finally {
+          setProcessing(false);
+        }
       },
 
       // ─── Data Sources ─────────────────────────

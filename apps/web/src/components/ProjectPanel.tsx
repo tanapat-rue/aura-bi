@@ -5,7 +5,7 @@ export function ProjectPanel() {
   const {
     project, savedProjects,
     renameProject, saveProject, loadProject, deleteProject, newProject,
-    exportProject, importProject,
+    exportProjectFile, importProjectFile,
   } = useBIStore();
   const [showList, setShowList] = useState(false);
   const [showStatus, setShowStatus] = useState("");
@@ -17,33 +17,32 @@ export function ProjectPanel() {
     setTimeout(() => setShowStatus(""), 2000);
   };
 
-  const handleExport = () => {
-    const json = exportProject();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${project.name.replace(/[^a-zA-Z0-9]/g, "_")}.aurabi.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    const includeData = window.confirm("Include raw data in the .aurabi file? This makes the file larger but self-contained.");
+    setShowStatus("Exporting...");
+    try {
+      await exportProjectFile(includeData);
+      setShowStatus("Exported");
+    } catch (err) {
+      console.error(err);
+      setShowStatus("Export failed");
+    }
+    setTimeout(() => setShowStatus(""), 2000);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        importProject(reader.result as string);
-        setShowStatus("Imported");
-        setTimeout(() => setShowStatus(""), 2000);
-      } catch {
-        setShowStatus("Invalid file");
-        setTimeout(() => setShowStatus(""), 2000);
-      }
-    };
-    reader.readAsText(file);
     e.target.value = "";
+    setShowStatus("Importing...");
+    try {
+      await importProjectFile(file);
+      setShowStatus("Imported");
+    } catch (err) {
+      console.error(err);
+      setShowStatus("Invalid file");
+    }
+    setTimeout(() => setShowStatus(""), 2000);
   };
 
   const stats = [
@@ -107,7 +106,7 @@ export function ProjectPanel() {
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
             Import
           </button>
-          <input ref={fileInputRef} type="file" accept=".json,.aurabi.json" onChange={handleImport} className="hidden" />
+          <input ref={fileInputRef} type="file" accept=".json,.aurabi" onChange={handleImport} className="hidden" />
         </div>
       </div>
 
