@@ -155,6 +155,8 @@ interface BIStore {
   // Data sources
   addDataSource: (ds: DataSourceRef) => void;
   removeDataSource: (name: string) => void;
+  removeTable: (name: string) => Promise<void>;
+  clearStorage: () => Promise<void>;
 
   // Pipelines
   addPipeline: (pipeline: Pipeline) => void;
@@ -361,6 +363,51 @@ export const useBIStore = create<BIStore>()(
           dataSources: s.project.dataSources.filter((d) => d.name !== name),
         }),
       })),
+
+      removeTable: async (name) => {
+        const { project, activeTable, setProcessing, setTables, removeDataSource } = get();
+        setProcessing(true);
+        try {
+          const conn = await getConnection();
+          await conn.query(`DROP TABLE IF EXISTS "${name}"`);
+          
+          const ds = project.dataSources.find(d => d.name === name);
+          if (ds && ds.fileName) {
+             await opfs.deleteFile(ds.fileName);
+          } else {
+             await opfs.deleteFile(name);
+          }
+          
+          removeDataSource(name);
+          
+          const newTables = await listTables();
+          setTables(newTables);
+          
+          if (activeTable === name) {
+            get().setActiveTable(newTables[0]?.name || null);
+          }
+        } catch (e) {
+          console.error("Failed to remove table", e);
+        } finally {
+          setProcessing(false);
+        }
+      },
+
+      clearStorage: async () => {
+        const confirmClear = window.confirm("Are you sure you want to completely clear all data, projects, and local storage? This cannot be undone.");
+        if (!confirmClear) return;
+        
+        get().setProcessing(true);
+        try {
+          await opfs.clearAll();
+          localStorage.clear();
+          window.location.reload();
+        } catch (err) {
+          console.error("Failed to clear storage", err);
+          alert("Failed to clear storage.");
+          get().setProcessing(false);
+        }
+      },
 
       // ─── Pipelines ────────────────────────────
       addPipeline: (pipeline) => set((s) => ({
