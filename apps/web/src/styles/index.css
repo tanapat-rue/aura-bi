@@ -144,3 +144,24 @@ option {
   background: #14141c;
   color: #e5e7eb;
 }
+
+@media print {
+  body {
+    background: #0e0e16 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  #dashboard-export-area {
+    display: grid !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+}

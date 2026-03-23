@@ -27,7 +27,7 @@ export function Dashboard() {
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent-purple/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
 
       {/* Sidebar */}
-      <aside className={`border-r border-white-[0.03] bg-surface-1/40 backdrop-blur-3xl flex flex-col overflow-hidden shrink-0 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.2)] transition-all duration-300 ${isSidebarCollapsed ? 'w-0 border-none' : 'w-64'}`}>
+      <aside className={`no-print border-r border-white-[0.03] bg-surface-1/40 backdrop-blur-3xl flex flex-col overflow-hidden shrink-0 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.2)] transition-all duration-300 ${isSidebarCollapsed ? 'w-0 border-none' : 'w-64'}`}>
         <div className="p-4 border-b border-white/[0.04] min-w-[16rem]">
           <FileDropzone />
         </div>
@@ -46,7 +46,7 @@ export function Dashboard() {
       </aside>
 
       {/* Toggle Button */}
-      <div className={`absolute left-0 top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ${isSidebarCollapsed ? 'translate-x-0' : 'translate-x-64'}`}>
+      <div className={`no-print absolute left-0 top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ${isSidebarCollapsed ? 'translate-x-0' : 'translate-x-64'}`}>
         <button
           onClick={toggleSidebar}
           className="w-5 h-16 bg-surface-2/95 hover:bg-surface-3 border border-white/[0.08] border-l-0 rounded-r-xl flex items-center justify-center text-gray-500 hover:text-aura-400 transition shadow-lg backdrop-blur-md cursor-pointer group"
@@ -63,7 +63,7 @@ export function Dashboard() {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Tabs */}
-        <div className="border-b border-white/[0.03] px-3 flex gap-1 bg-surface-0/20 backdrop-blur-xl">
+        <div className="no-print border-b border-white/[0.03] px-3 flex gap-1 bg-surface-0/20 backdrop-blur-xl">
           {TABS.map((t) => (
             <button
               key={t.key}

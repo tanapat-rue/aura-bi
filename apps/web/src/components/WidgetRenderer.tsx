@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 import type { Widget, WidgetFilter } from "@/lib/widget-types";
 import { COLOR_PALETTES } from "@/lib/widget-types";
 import { queryWidget, getDistinctValues, type WidgetQueryResult } from "@/lib/widget-query";
@@ -300,21 +301,44 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
     line: "line", area: "line", stacked_area: "line", combo: "bar",
   };
 
-  const getSeriesStyle = (type: string, isArea: boolean, color: string) => ({
-    stack: isStacked ? "total" : undefined,
-    smooth,
-    symbol: type === "line" ? "circle" : undefined,
-    symbolSize: type === "line" ? 4 : undefined,
-    areaStyle: isArea ? { opacity: 0.15, color: gradient ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + "40" }, { offset: 1, color: color + "05" }] } : color + "20" } : undefined,
-    itemStyle: {
-      color: gradient && type === "bar" ? { type: "linear", x: 0, y: isHorizontal ? 0 : 1, x2: isHorizontal ? 1 : 0, y2: 0, colorStops: [{ offset: 0, color: color + "cc" }, { offset: 1, color }] } : color,
-      borderRadius: type === "bar" ? (isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined,
-      shadowBlur: type === "bar" ? 4 : 0,
-      shadowColor: color + "30",
-    },
-    lineStyle: type === "line" ? { width: 2.5, shadowBlur: 6, shadowColor: color + "40" } : undefined,
-    emphasis: { itemStyle: { shadowBlur: 12, shadowColor: color + "60" } },
-  });
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const getSeriesStyle = (type: string, isArea: boolean, color: string) => {
+    const barGradient = gradient && type === "bar" 
+      ? new echarts.graphic.LinearGradient(0, isHorizontal ? 0 : 1, isHorizontal ? 1 : 0, 0, [
+          { offset: 0, color: hexToRgba(color, 0.8) },
+          { offset: 1, color: color }
+        ])
+      : color;
+
+    const areaGradient = gradient
+      ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: hexToRgba(color, 0.4) },
+          { offset: 1, color: hexToRgba(color, 0.05) }
+        ])
+      : hexToRgba(color, 0.2);
+
+    return {
+      stack: isStacked ? "total" : undefined,
+      smooth,
+      symbol: type === "line" ? "circle" : undefined,
+      symbolSize: type === "line" ? 4 : undefined,
+      areaStyle: isArea ? { opacity: 1, color: areaGradient } : undefined,
+      itemStyle: {
+        color: barGradient,
+        borderRadius: type === "bar" ? (isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined,
+        shadowBlur: type === "bar" ? 4 : 0,
+        shadowColor: hexToRgba(color, 0.3),
+      },
+      lineStyle: type === "line" ? { width: 2.5, shadowBlur: 6, shadowColor: hexToRgba(color, 0.4) } : undefined,
+      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: hexToRgba(color, 0.6) } },
+    };
+  };
 
   const activeDims = widget.dimensions.filter((d) => d.column);
   let labels: string[] = [];

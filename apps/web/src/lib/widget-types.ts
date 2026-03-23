@@ -90,6 +90,11 @@ export const COLOR_PALETTES: Record<string, string[]> = {
   neon: ["#c084fc", "#e879f9", "#f472b6", "#fb7185", "#f97316", "#fbbf24", "#a3e635", "#4ade80"],
   mono: ["#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155", "#1e293b", "#0f172a"],
   nord: ["#88c0d0", "#81a1c1", "#5e81ac", "#b48ead", "#a3be8c", "#ebcb8b", "#d08770", "#bf616a"],
+  pastel: ["#fbcfe8", "#fde047", "#bbf7d0", "#bfdbfe", "#e9d5ff", "#cffafe", "#ffedd5"],
+  earth: ["#b45309", "#d97706", "#f59e0b", "#166534", "#15803d", "#22c55e", "#4d7c0f"],
+  cyberpunk: ["#fde047", "#f97316", "#ef4444", "#ec4899", "#d946ef", "#8b5cf6", "#0ea5e9"],
+  retro: ["#ea580c", "#f59e0b", "#84cc16", "#10b981", "#06b6d4", "#6366f1", "#d946ef"],
+  business: ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"],
 };
 
 export const WIDGET_CATALOG: {
