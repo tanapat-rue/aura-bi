@@ -249,6 +249,9 @@ pnpm dev
 # Build frontend only
 pnpm --filter @aura-bi/web build
 
+# Deploy frontend (ensure you build first)
+pnpm --filter @aura-bi/web deploy
+
 # Run local D1 migration
 pnpm --filter @aura-bi/worker db:migrate:local
 
