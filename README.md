@@ -180,7 +180,7 @@ npx wrangler secret put JWT_SECRET
 ### 5. Deploy the Worker
 
 ```bash
-pnpm --filter @aura-bi/worker deploy
+pnpm --filter @aura-bi/worker run deploy
 ```
 
 ### 6. Create Cloudflare Pages project (first time only)
@@ -250,7 +250,7 @@ pnpm dev
 pnpm --filter @aura-bi/web build
 
 # Deploy frontend (ensure you build first)
-pnpm --filter @aura-bi/web deploy
+pnpm --filter @aura-bi/web run deploy
 
 # Run local D1 migration
 pnpm --filter @aura-bi/worker db:migrate:local
@@ -259,7 +259,7 @@ pnpm --filter @aura-bi/worker db:migrate:local
 pnpm --filter @aura-bi/worker db:migrate:remote
 
 # Deploy worker
-pnpm --filter @aura-bi/worker deploy
+pnpm --filter @aura-bi/worker run deploy
 
 # Type check
 pnpm --filter @aura-bi/web tsc --noEmit
