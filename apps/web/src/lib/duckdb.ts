@@ -269,7 +269,10 @@ export type BaseStep =
   | { type: "json_split"; column: string; fields: string[] }
   | { type: "custom_sql"; sql: string }
   | { type: "python_script"; code: string }
-  | { type: "js_script"; code: string };
+  | { type: "js_script"; code: string }
+  | { type: "concatenate"; columns: string[]; separator: string; newName: string }
+  | { type: "text_transform"; column: string; operation: "UPPER" | "LOWER" | "TRIM" | "LTRIM" | "RTRIM" | "TITLE" | "REPLACE"; find?: string; replace?: string }
+  | { type: "date_extract"; column: string; part: "YEAR" | "MONTH" | "DAY" | "DOW" | "HOUR" | "MINUTE" | "QUARTER"; newName: string };
 
 export type TransformStep = BaseStep & { hidden?: boolean };
 
@@ -405,6 +408,32 @@ export async function executePipeline(
         }
         break;
       }
+      case "concatenate": {
+        const concatCols = step.columns.map((c) => `"${c}"`).join(`, '${step.separator || " "}', `);
+        stepSQL = `SELECT *, CONCAT(${concatCols}) AS "${step.newName || 'concatenated'}" FROM ${currentRef}`;
+        break;
+      }
+      case "text_transform": {
+        const col = `"${step.column}"`;
+        let expr: string;
+        switch (step.operation) {
+          case "UPPER": expr = `UPPER(${col})`; break;
+          case "LOWER": expr = `LOWER(${col})`; break;
+          case "TRIM": expr = `TRIM(${col})`; break;
+          case "LTRIM": expr = `LTRIM(${col})`; break;
+          case "RTRIM": expr = `RTRIM(${col})`; break;
+          case "TITLE": expr = `INITCAP(${col})`; break;
+          case "REPLACE": expr = `REPLACE(${col}, '${step.find || ""}', '${step.replace || ""}')`; break;
+          default: expr = col;
+        }
+        stepSQL = `SELECT * REPLACE (${expr} AS "${step.column}") FROM ${currentRef}`;
+        break;
+      }
+      case "date_extract": {
+        const datePart = step.part === "DOW" ? "DOW" : step.part;
+        stepSQL = `SELECT *, EXTRACT(${datePart} FROM "${step.column}") AS "${step.newName || step.column + '_' + step.part.toLowerCase()}" FROM ${currentRef}`;
+        break;
+      }
       case "custom_sql":
         stepSQL = step.sql.replace(/__SOURCE__/g, currentRef);
         break;
@@ -483,7 +512,7 @@ result_df.to_json(orient='records')
   if (ctes.length > 0) {
     sql = `WITH ${ctes.join(",\n")} SELECT * FROM ${currentRef}`;
   } else {
-    sql = `SELECT * FROM "${sourceTable}"`;
+    sql = `SELECT * FROM ${currentRef}`;
   }
 
   // If outputTable is specified, materialize the result
@@ -506,7 +535,7 @@ result_df.to_json(orient='records')
   const countSQL = `WITH ${ctes.join(",\n")} SELECT COUNT(*) as cnt FROM ${currentRef}`;
   let rowCount = rows.length;
   try {
-    const countResult = await connection.query(ctes.length > 0 ? countSQL : `SELECT COUNT(*) as cnt FROM "${sourceTable}"`);
+    const countResult = await connection.query(ctes.length > 0 ? countSQL : `SELECT COUNT(*) as cnt FROM ${currentRef}`);
     rowCount = Number(countResult.toArray()[0].cnt);
   } catch { /* use rows.length as fallback */ }
 
@@ -553,4 +582,36 @@ export async function queryForChart(
 
   const result = await connection.query(sql);
   return result.toArray().map((row: any) => ({ ...row }));
+}
+
+// ─── Helpers for ETL UI ──────────────────────────────────────
+
+export async function getDistinctValues(
+  tableName: string,
+  column: string,
+  limit = 100
+): Promise<string[]> {
+  try {
+    const connection = await getConnection();
+    const result = await connection.query(
+      `SELECT DISTINCT CAST("${column}" AS VARCHAR) as val FROM "${tableName}" WHERE "${column}" IS NOT NULL ORDER BY val LIMIT ${limit}`
+    );
+    return result.toArray().map((r: any) => String(r.val));
+  } catch {
+    return [];
+  }
+}
+
+export async function getStepRowCount(
+  sourceTable: string,
+  steps: TransformStep[],
+  upToIndex: number
+): Promise<number | null> {
+  try {
+    const subset = steps.slice(0, upToIndex + 1);
+    const result = await executePipeline(sourceTable, subset);
+    return result.rowCount;
+  } catch {
+    return null;
+  }
 }

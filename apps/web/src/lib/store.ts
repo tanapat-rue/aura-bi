@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { TransformStep, ColumnProfile } from "./duckdb";
-import { initDuckDB, listTables, getConnection } from "./duckdb";
+import { initDuckDB, listTables, getConnection, executePipeline } from "./duckdb";
 import type { Widget, WidgetFilter } from "./widget-types";
 import { opfs, downloadAurabiFile, parseAurabiFile } from "./fs";
 
@@ -150,6 +150,7 @@ interface BIStore {
   exportProjectFile: (includeData: boolean) => Promise<void>;
   importProjectFile: (file: File) => Promise<void>;
   restoreEnvironment: () => Promise<void>;
+  saveStageAsTable: (pipelineId: string, upToStepIndex: number, tableName: string) => Promise<void>;
 
   // Data sources
   addDataSource: (ds: DataSourceRef) => void;
@@ -315,6 +316,32 @@ export const useBIStore = create<BIStore>()(
           setTables(tables);
         } catch (err) {
           console.error("Failed to restore environment", err);
+        } finally {
+          setProcessing(false);
+        }
+      },
+
+      saveStageAsTable: async (pipelineId: string, upToStepIndex: number, tableName: string) => {
+        const { project, setProcessing, setTables, addDataSource } = get();
+        const pipeline = project.pipelines.find((p) => p.id === pipelineId);
+        if (!pipeline) return;
+        
+        setProcessing(true);
+        try {
+          const stepsSubset = pipeline.steps.slice(0, upToStepIndex + 1);
+          const result = await executePipeline(pipeline.sourceTable, stepsSubset, tableName);
+          const tables = await listTables();
+          setTables(tables);
+          addDataSource({
+            name: tableName,
+            fileName: `stage_${tableName}`,
+            fileType: 'derived',
+            rowCount: result.rowCount,
+            columns: result.columns.map((c) => ({ name: c, type: 'VARCHAR' })),
+          });
+        } catch (err) {
+          console.error("Failed to save stage as table:", err);
+          alert("Failed to save stage as table.");
         } finally {
           setProcessing(false);
         }
