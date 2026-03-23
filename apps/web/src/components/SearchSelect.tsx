@@ -77,12 +77,23 @@ export function SearchSelect({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Focus input + calc position when opened
+  // Focus input + calc position when opened, and attach scroll listener
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    updatePosition();
+    setTimeout(() => inputRef.current?.focus(), 0);
+
+    const handleScroll = (e: Event) => {
+      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) return;
       updatePosition();
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
+    };
+    window.addEventListener("scroll", handleScroll, true); // true = capture phase to catch all nested scrolls
+    window.addEventListener("resize", updatePosition);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [open, updatePosition]);
 
   // Reset highlight when search changes
@@ -132,7 +143,8 @@ export function SearchSelect({
           style={{
             top: dropdownPos.top,
             left: dropdownPos.left,
-            width: dropdownPos.width,
+            width: Math.max(dropdownPos.width, 220),
+            minWidth: dropdownPos.width,
             zIndex: 9999,
           }}
         >

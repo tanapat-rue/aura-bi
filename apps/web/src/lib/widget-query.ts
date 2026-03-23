@@ -105,7 +105,7 @@ export async function queryWidget(
       };
     }
 
-    const dimCols = dims.map((d) => `"${d.column}" AS "${d.label || d.column}"`);
+    const dimCols = dims.map((d) => `CAST("${d.column}" AS VARCHAR) AS "${d.label || d.column}"`);
     const metCols = mets.map((m, i) => `${metricExpr(m)} AS "${metricAlias(m, i)}"`);
 
     if (metCols.length > 0 && dimCols.length > 0) {
@@ -135,7 +135,7 @@ export async function queryWidget(
   // Heatmap needs 2 dimensions + 1 metric
   if (widget.type === "heatmap" && dims.length >= 2) {
     const m = mets[0] || { column: "*", aggregate: "COUNT" as const };
-    const sql = `SELECT "${dims[0].column}" as x, "${dims[1].column}" as y, ${metricExpr(m)} as value
+    const sql = `SELECT CAST("${dims[0].column}" AS VARCHAR) as x, CAST("${dims[1].column}" AS VARCHAR) as y, ${metricExpr(m)} as value
       FROM ${table} ${whereClause}
       GROUP BY "${dims[0].column}", "${dims[1].column}"
       ORDER BY x, y`;
@@ -160,7 +160,7 @@ export async function queryWidget(
   }
 
   const dimExprs = dims.map((d) => `"${d.column}"`);
-  const dimAliases = dims.map((d) => `"${d.column}" AS "${d.label || d.column}"`);
+  const dimAliases = dims.map((d) => `CAST("${d.column}" AS VARCHAR) AS "${d.label || d.column}"`);
   const metCols = activeMets.map((m, i) => `${metricExpr(m)} AS "${metricAlias(m, i)}"`);
 
   let sql = `SELECT ${[...dimAliases, ...metCols].join(", ")} FROM ${table} ${whereClause} GROUP BY ${dimExprs.join(", ")}`;

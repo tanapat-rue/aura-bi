@@ -84,7 +84,7 @@ export function WidgetConfigPanel({ widget, onChange, onClose }: Props) {
   const isDataWidget = !isFilterWidget && !isTextWidget && widget.dataSource;
 
   return (
-    <div className="w-[320px] border-l border-white/[0.04] flex flex-col overflow-hidden shrink-0" style={{ background: "linear-gradient(180deg, #0e0e16 0%, #0a0a12 100%)" }}>
+    <div className="w-[400px] border-l border-white/[0.04] flex flex-col overflow-hidden shrink-0" style={{ background: "linear-gradient(180deg, #0e0e16 0%, #0a0a12 100%)" }}>
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-white/[0.04]">
         <div className="flex items-center justify-between mb-3">
@@ -218,9 +218,8 @@ export function WidgetConfigPanel({ widget, onChange, onClose }: Props) {
                         <div className="flex-1" />
                         <RemoveBtn onClick={() => onChange({ ...widget, metrics: widget.metrics.filter((_, j) => j !== i) })} />
                       </div>
-                      {/* Function + Column */}
-                      <div className="flex gap-2">
-                        <div className="w-[120px]">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+                        <div>
                           <div className="text-[9px] text-gray-600 mb-1 font-semibold uppercase">Function</div>
                           <SearchSelect
                             value={met.aggregate}
@@ -230,7 +229,7 @@ export function WidgetConfigPanel({ widget, onChange, onClose }: Props) {
                             size="md"
                           />
                         </div>
-                        <div className="flex-1">
+                        <div>
                           <div className="text-[9px] text-gray-600 mb-1 font-semibold uppercase">Column</div>
                           <SearchSelect
                             value={met.column}
@@ -240,10 +239,7 @@ export function WidgetConfigPanel({ widget, onChange, onClose }: Props) {
                             size="md"
                           />
                         </div>
-                      </div>
-                      {/* Label + Format */}
-                      <div className="flex gap-2">
-                        <div className="flex-1">
+                        <div>
                           <div className="text-[9px] text-gray-600 mb-1 font-semibold uppercase">Display Label</div>
                           <input
                             value={met.label || ""}
@@ -252,7 +248,7 @@ export function WidgetConfigPanel({ widget, onChange, onClose }: Props) {
                             placeholder={`${met.aggregate}(${met.column})`}
                           />
                         </div>
-                        <div className="w-[100px]">
+                        <div>
                           <div className="text-[9px] text-gray-600 mb-1 font-semibold uppercase">Format</div>
                           <SearchSelect
                             value={met.format || "number"}
