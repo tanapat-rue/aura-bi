@@ -246,7 +246,7 @@ export function PipelineBuilder() {
 
   if (!activeTable) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center animate-fade-in bg-surface-base">
+      <div className="flex-1 flex flex-col items-center justify-center text-center animate-fade-in h-full">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-white/[0.04] flex items-center justify-center mb-4">
           <svg className="w-7 h-7 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
         </div>
@@ -257,7 +257,7 @@ export function PipelineBuilder() {
   }
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-surface-base">
+    <div className="flex h-full overflow-hidden">
       
       {/* ─── LEFT PANE: DATA PREVIEW (MAIN AREA) ─── */}
       <div className="flex-1 flex flex-col min-w-0 p-6 relative">
@@ -346,29 +346,24 @@ export function PipelineBuilder() {
         <div className="w-[420px] flex-1 overflow-y-auto p-5 space-y-5">
       {/* Pipeline selector */}
       <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{ background: "linear-gradient(135deg, rgba(84,104,246,0.04) 0%, rgba(14,14,20,0.4) 60%)", border: "1px solid rgba(84,104,246,0.08)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base" style={{ background: "rgba(84,104,246,0.12)" }}>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0" style={{ background: "rgba(84,104,246,0.12)" }}>
             🔬
           </div>
-          <div className="flex-1">
-            <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">Data Pipeline</div>
-            <div className="flex items-center gap-3 mt-1">
-              <div className="flex-1">
-                <SearchSelect
-                  value={activePipelineId || ""}
-                  onChange={(v) => setActivePipeline(v || null)}
-                  options={pipelines.filter((p) => p.sourceTable === activeTable).map((p, index) => ({ value: p.id, label: p.name || `Pipeline ${index + 1}`, sublabel: `${p.steps.length} steps` }))}
-                  placeholder="Select or create a pipeline..."
-                  size="md"
-                />
-              </div>
-              <button onClick={createPipeline} className="btn-primary text-[12px] py-2 px-4 whitespace-nowrap">
-                + New Pipeline
-              </button>
-            </div>
-          </div>
+          <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">Data Pipeline</div>
         </div>
+        <SearchSelect
+          value={activePipelineId || ""}
+          onChange={(v) => setActivePipeline(v || null)}
+          options={pipelines.filter((p) => p.sourceTable === activeTable).map((p, index) => ({ value: p.id, label: p.name || `Pipeline ${index + 1}`, sublabel: `${p.steps.length} steps` }))}
+          placeholder="Select or create a pipeline..."
+          size="md"
+        />
+        <button onClick={createPipeline} className="btn-primary text-[12px] py-2 w-full">
+          + New Pipeline
+        </button>
       </div>
+
 
       {activePipeline && (
         <>

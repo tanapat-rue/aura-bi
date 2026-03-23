@@ -111,11 +111,14 @@ export function Dashboard() {
           <div className="flex-1 overflow-hidden">
             <DashboardCanvas />
           </div>
+        ) : viewMode === "pipeline" ? (
+          <div className="flex-1 relative overflow-hidden">
+            <PipelineBuilder />
+          </div>
         ) : (
           <div className="flex-1 overflow-auto p-5 bg-surface-0">
             {viewMode === "data" && <DataTable />}
             {viewMode === "profile" && <DataProfiler />}
-            {viewMode === "pipeline" && <PipelineBuilder />}
             {viewMode === "sql" && <SQLEditor />}
           </div>
         )}
