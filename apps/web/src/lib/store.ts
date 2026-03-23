@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { TransformStep, ColumnProfile } from "./duckdb";
-import { initDuckDB, listTables, getConnection, executePipeline } from "./duckdb";
+import { initDuckDB, listTables, getConnection, executePipeline, castTemporalColumnsToVarchar } from "./duckdb";
 import type { Widget, WidgetFilter } from "./widget-types";
 import { opfs, downloadAurabiFile, parseAurabiFile } from "./fs";
 
@@ -309,6 +309,7 @@ export const useBIStore = create<BIStore>()(
             }
             try {
               await connection.query(`CREATE OR REPLACE TABLE "${ds.name}" AS SELECT * FROM ${readExpr}`);
+              await castTemporalColumnsToVarchar(connection, ds.name);
             } catch (e) {
               console.warn(`Failed to restore table ${ds.name} from OPFS (buffer might be missing)`, e);
             }

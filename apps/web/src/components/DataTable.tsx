@@ -27,7 +27,7 @@ export function DataTable() {
           <thead className="sticky top-0 z-10">
             <tr className="bg-surface-2/95 backdrop-blur-sm">
               {columns.map((col) => (
-                <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap border-b border-white/[0.04]">
+                <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400 tracking-wider whitespace-nowrap border-b border-white/[0.04]">
                   {col}
                 </th>
               ))}

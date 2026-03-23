@@ -47,6 +47,41 @@ export async function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
   return conn;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────
+
+/**
+ * Re-creates a table casting DATE/TIMESTAMP/TIME columns to VARCHAR.
+ * DuckDB auto-detects date strings (e.g. "2018-04-12") as DATE type,
+ * but Arrow serializes them as Unix epoch integers. We keep them as
+ * human-readable strings; users can cast to DATE via ETL when needed.
+ * Numbers and booleans are kept as their detected types.
+ */
+export async function castTemporalColumnsToVarchar(
+  connection: duckdb.AsyncDuckDBConnection,
+  tableName: string
+) {
+  const schemaResult = await connection.query(
+    `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${tableName}' ORDER BY ordinal_position`
+  );
+  const cols = schemaResult.toArray().map((r: any) => ({
+    name: r.column_name as string,
+    type: r.data_type as string,
+  }));
+  const hasTemporal = cols.some((c) => /^(DATE|TIMESTAMP|TIME|INTERVAL)/i.test(c.type));
+  if (!hasTemporal) return;
+
+  const exprs = cols
+    .map((c) =>
+      /^(DATE|TIMESTAMP|TIME|INTERVAL)/i.test(c.type)
+        ? `CAST("${c.name}" AS VARCHAR) AS "${c.name}"`
+        : `"${c.name}"`
+    )
+    .join(", ");
+  await connection.query(
+    `CREATE OR REPLACE TABLE "${tableName}" AS SELECT ${exprs} FROM "${tableName}"`
+  );
+}
+
 // ─── Ingestion ───────────────────────────────────────────────
 
 export async function ingestFile(
@@ -60,10 +95,10 @@ export async function ingestFile(
 
   const buffer = await file.arrayBuffer();
   const uint8Data = new Uint8Array(buffer);
-  
+
   // Persist the raw data to OPFS so it survives reloads
   await opfs.saveFile(file.name, uint8Data);
-  
+
   await database.registerFileBuffer(file.name, uint8Data);
 
   let readExpr: string;
@@ -78,6 +113,10 @@ export async function ingestFile(
   await connection.query(
     `CREATE OR REPLACE TABLE "${tableName}" AS SELECT * FROM ${readExpr}`
   );
+
+  // Cast temporal columns to VARCHAR so they display as "2018-04-12" strings
+  // instead of Unix epoch integers. Users can use the Cast Type ETL step later.
+  await castTemporalColumnsToVarchar(connection, tableName);
 
   const schemaResult = await connection.query(
     `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${tableName}'`

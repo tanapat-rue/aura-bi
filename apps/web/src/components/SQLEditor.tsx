@@ -99,7 +99,7 @@ export function SQLEditor() {
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: "rgba(14,14,20,0.95)" }}>
                   {columns.map((col) => (
-                    <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400 uppercase whitespace-nowrap" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>{col}</th>
+                    <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400 whitespace-nowrap" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>{col}</th>
                   ))}
                 </tr>
               </thead>

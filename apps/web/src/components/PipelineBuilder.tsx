@@ -302,7 +302,7 @@ export function PipelineBuilder() {
                   <thead className="sticky top-0 z-10">
                     <tr style={{ background: "rgba(14,14,20,0.95)", backdropFilter: "blur(8px)" }}>
                       {previewData.columns.map((col) => (
-                        <th key={col} className="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>{col}</th>
+                        <th key={col} className="px-4 py-3 text-left text-[11px] font-bold text-gray-400 tracking-widest whitespace-nowrap" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
