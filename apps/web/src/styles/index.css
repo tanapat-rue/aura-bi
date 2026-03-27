@@ -145,6 +145,56 @@ option {
   color: #e5e7eb;
 }
 
+/* ─── React Grid Layout overrides ───────────────────────────── */
+
+/* Resize handle — bottom-right grip */
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 3px;
+}
+.react-resizable-handle::after {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid rgba(255,255,255,0.25);
+  border-bottom: 2px solid rgba(255,255,255,0.25);
+  border-radius: 0 0 4px 0;
+}
+.react-grid-item:hover .react-resizable-handle,
+.react-grid-item.resizing .react-resizable-handle {
+  opacity: 1;
+}
+.react-resizable-handle:hover::after {
+  border-color: rgba(84,104,246,0.8);
+}
+
+/* Drag placeholder */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(84,104,246,0.12) !important;
+  border: 1px dashed rgba(84,104,246,0.4) !important;
+  border-radius: 16px !important;
+  opacity: 1 !important;
+}
+
+/* Only animate idle items — not during drag/resize */
+.react-grid-item {
+  transition: none !important;
+}
+.react-grid-item:not(.react-draggable-dragging):not(.resizing) {
+  transition: transform 200ms ease, width 200ms ease, height 200ms ease !important;
+}
+
 @media print {
   body {
     background: #0e0e16 !important;

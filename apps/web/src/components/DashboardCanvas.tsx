@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { Widget, WidgetFilter, WidgetType } from "@/lib/widget-types";
 import { WIDGET_CATALOG, createDefaultWidget } from "@/lib/widget-types";
 import { WidgetRenderer } from "./WidgetRenderer";
@@ -7,6 +7,36 @@ import { WidgetPicker } from "./WidgetPicker";
 import { useBIStore } from "@/lib/store";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { GridLayout, useContainerWidth } from "react-grid-layout";
+import type { LayoutItem } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+
+const ROW_HEIGHT = 80;
+
+function computeLayout(widgets: Widget[]): LayoutItem[] {
+  // If all widgets already have stored positions, use them directly
+  if (widgets.length > 0 && widgets.every((w) => w.x !== undefined && w.y !== undefined)) {
+    return widgets.map((w) => ({
+      i: w.id,
+      x: w.x!,
+      y: w.y!,
+      w: w.w,
+      h: Math.max(1, Math.round(w.h / ROW_HEIGHT)),
+    }));
+  }
+  // Auto-pack: fill row by row left-to-right (mirrors the old CSS grid behaviour)
+  let col = 0, row = 0, rowMaxH = 0;
+  return widgets.map((w) => {
+    const h = Math.max(1, Math.round(w.h / ROW_HEIGHT));
+    if (col + w.w > 4) { col = 0; row += rowMaxH; rowMaxH = 0; }
+    const item: LayoutItem = { i: w.id, x: col, y: row, w: w.w, h };
+    col += w.w;
+    rowMaxH = Math.max(rowMaxH, h);
+    if (col >= 4) { col = 0; row += rowMaxH; rowMaxH = 0; }
+    return item;
+  });
+}
 
 export function DashboardCanvas() {
   const { activeTable, tables, project, addDashboard, updateDashboard, removeDashboard, setActiveDashboard, getActiveDashboard } = useBIStore();
@@ -45,6 +75,23 @@ export function DashboardCanvas() {
     update({ widgets: widgets.filter((w) => w.id !== id) });
     if (editingId === id) setEditingId(null);
   };
+
+  const layout = useMemo(() => computeLayout(widgets), [widgets]);
+  const { width: gridWidth, containerRef, mounted: gridMounted } = useContainerWidth();
+
+  const handleLayoutChange = useCallback((newLayout: readonly LayoutItem[]) => {
+    if (!dashboard) return;
+    const updated = widgets.map((w) => {
+      const item = newLayout.find((l) => l.i === w.id);
+      if (!item) return w;
+      const newH = item.h * ROW_HEIGHT;
+      if (w.x === item.x && w.y === item.y && w.w === item.w && w.h === newH) return w;
+      return { ...w, x: item.x, y: item.y, w: item.w, h: newH };
+    });
+    if (updated.some((w, i) => w !== widgets[i])) {
+      updateDashboard(dashboard.id, { widgets: updated });
+    }
+  }, [widgets, dashboard, updateDashboard]);
 
   const handleCrossFilter = useCallback((filter: WidgetFilter | null) => {
     if (filter) {
@@ -292,12 +339,24 @@ export function DashboardCanvas() {
               </div>
             </div>
           ) : (
-            <div id="dashboard-export-area" className="grid gap-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-              {widgets.map((w) => (
-                <div key={w.id} style={{ gridColumn: `span ${w.w}` }}>
-                  <WidgetRenderer widget={w} globalFilters={allFilters} onEdit={() => setEditingId(editingId === w.id ? null : w.id)} onRemove={() => removeWidget(w.id)} isEditing={editingId === w.id} onCrossFilter={handleCrossFilter} />
-                </div>
-              ))}
+            <div id="dashboard-export-area" ref={containerRef}>
+              {gridMounted && (
+                <GridLayout
+                  layout={layout}
+                  width={gridWidth}
+                  gridConfig={{ cols: 4, rowHeight: ROW_HEIGHT, margin: [16, 16] as [number,number], containerPadding: [0, 0] as [number,number] }}
+                  dragConfig={{ handle: ".widget-drag-handle" }}
+                  resizeConfig={{ handles: ["se"] }}
+                  onLayoutChange={handleLayoutChange}
+                  autoSize
+                >
+                  {widgets.map((w) => (
+                    <div key={w.id}>
+                      <WidgetRenderer widget={w} globalFilters={allFilters} onEdit={() => setEditingId(editingId === w.id ? null : w.id)} onRemove={() => removeWidget(w.id)} isEditing={editingId === w.id} onCrossFilter={handleCrossFilter} />
+                    </div>
+                  ))}
+                </GridLayout>
+              )}
             </div>
           )}
         </div>

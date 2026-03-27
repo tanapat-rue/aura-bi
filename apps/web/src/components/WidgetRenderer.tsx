@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";
 import type { Widget, WidgetFilter } from "@/lib/widget-types";
@@ -39,19 +39,19 @@ export function WidgetRenderer({ widget, globalFilters, onEdit, onRemove, isEdit
 
   return (
     <div
-      className={`group relative rounded-2xl flex flex-col transition-all duration-400
-        ${isEditing ? "ring-2 ring-aura-500/50 -translate-y-1 shadow-glow" : "hover:-translate-y-1 hover:shadow-card-hover hover:ring-1 hover:ring-white/[0.1]"}
+      className={`group relative rounded-2xl flex flex-col transition-shadow duration-300
+        ${isEditing ? "ring-2 ring-aura-500/50 shadow-glow" : "hover:shadow-card-hover hover:ring-1 hover:ring-white/[0.1]"}
         border border-white/[0.05]`}
-      style={{ height: widget.h, background: "linear-gradient(135deg, rgba(20,20,28,0.9) 0%, rgba(14,14,20,0.95) 100%)", boxShadow: "0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)" }}
+      style={{ height: "100%", background: "linear-gradient(135deg, rgba(20,20,28,0.9) 0%, rgba(14,14,20,0.95) 100%)", boxShadow: "0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)" }}
     >
-      {/* Widget header */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
+      {/* Widget header — drag handle */}
+      <div className="widget-drag-handle flex items-center justify-between px-4 py-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
         <span className="text-[13px] font-semibold text-gray-200 truncate">{widget.title}</span>
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button onClick={onEdit} className="text-[11px] text-gray-500 hover:text-aura-400 px-2 py-1 rounded-md hover:bg-white/[0.05] transition">
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" onMouseDown={(e) => e.stopPropagation()}>
+          <button onClick={onEdit} className="text-[11px] text-gray-500 hover:text-aura-400 px-2 py-1 rounded-md hover:bg-white/[0.05] transition cursor-pointer">
             Configure
           </button>
-          <button onClick={onRemove} className="text-[11px] text-gray-500 hover:text-red-400 px-2 py-1 rounded-md hover:bg-white/[0.05] transition">
+          <button onClick={onRemove} className="text-[11px] text-gray-500 hover:text-red-400 px-2 py-1 rounded-md hover:bg-white/[0.05] transition cursor-pointer">
             Remove
           </button>
         </div>
@@ -78,6 +78,42 @@ export function WidgetRenderer({ widget, globalFilters, onEdit, onRemove, isEdit
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Resize-aware ECharts wrapper ────────────────────────────
+// Uses ResizeObserver to call echartsInstance.resize() with exact pixel
+// dimensions whenever the container changes — far more reliable than window.resize.
+
+function EChart({ option, onEvents, notMerge }: { option: any; onEvents?: Record<string, (p: any) => void>; notMerge?: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<ReactECharts>(null);
+
+  const resize = useCallback(() => {
+    const el = containerRef.current;
+    const instance = chartRef.current?.getEchartsInstance();
+    if (!el || !instance) return;
+    instance.resize({ width: el.offsetWidth, height: el.offsetHeight });
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [resize]);
+
+  return (
+    <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
+      <ReactECharts
+        ref={chartRef}
+        option={option}
+        notMerge={notMerge}
+        onEvents={onEvents}
+        style={{ width: "100%", height: "100%" }}
+      />
     </div>
   );
 }
@@ -184,8 +220,7 @@ function GaugeChart({ widget, data, palette }: { widget: Widget; data: WidgetQue
   const max = widget.limit || Math.ceil(value * 1.5) || 100;
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       option={{
         backgroundColor: "transparent",
         series: [{
@@ -282,8 +317,7 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
     const xCol = data.columns[0];
     const yCol = data.columns[1] || xCol;
     return (
-      <ReactECharts
-        style={{ height: "100%" }}
+      <EChart
         option={{
           backgroundColor: "transparent",
           tooltip: { trigger: "item", backgroundColor: "#1a1a24", borderColor: "rgba(255,255,255,0.08)", textStyle: { color: "#e5e7eb" } },
@@ -397,8 +431,7 @@ function StandardChart({ widget, data, palette, onCrossFilter }: {
   };
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       onEvents={onCrossFilter ? {
         click: (params: any) => {
           const dim = widget.dimensions.find((d) => d.column);
@@ -462,8 +495,7 @@ function PieChart({ widget, data, palette, onCrossFilter }: {
   const isDonut = widget.type === "donut";
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       onEvents={onCrossFilter ? {
         click: (params: any) => {
           const dim = widget.dimensions.find((d) => d.column);
@@ -520,8 +552,7 @@ function TreemapChart({ widget, data, palette }: { widget: Widget; data: WidgetQ
   const metCol = data.columns[1] || dimCol;
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       option={{
         backgroundColor: "transparent",
         tooltip: { backgroundColor: "#1a1a24", borderColor: "rgba(255,255,255,0.08)", textStyle: { color: "#e5e7eb" } },
@@ -549,8 +580,7 @@ function FunnelChart({ widget, data, palette }: { widget: Widget; data: WidgetQu
   const metCol = data.columns[1] || dimCol;
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       option={{
         backgroundColor: "transparent",
         tooltip: { backgroundColor: "#1a1a24", borderColor: "rgba(255,255,255,0.08)", textStyle: { color: "#e5e7eb" } },
@@ -591,8 +621,7 @@ function HeatmapChart({ widget, data, palette }: { widget: Widget; data: WidgetQ
   ]);
 
   return (
-    <ReactECharts
-      style={{ height: "100%" }}
+    <EChart
       option={{
         backgroundColor: "transparent",
         tooltip: { backgroundColor: "#1a1a24", borderColor: "rgba(255,255,255,0.08)", textStyle: { color: "#e5e7eb" } },

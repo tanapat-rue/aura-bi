@@ -74,6 +74,9 @@ export interface Widget {
   // Filter control
   filterColumn?: string;
   filterValues?: string[];
+  // Grid position (set after first drag; auto-packed when missing)
+  x?: number;
+  y?: number;
 }
 
 export interface DashboardState {
