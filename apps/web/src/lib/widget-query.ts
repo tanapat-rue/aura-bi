@@ -34,6 +34,24 @@ function metricAlias(m: Metric, index: number): string {
   return m.label || `${m.aggregate.toLowerCase()}_${m.column === "*" ? "all" : m.column}`;
 }
 
+/** Resolves a sortBy column string to a safe ORDER BY expression for aggregated queries. */
+function resolveOrderByExpr(
+  sortCol: string,
+  dims: { column: string }[],
+  mets: Metric[]
+): string {
+  // 1. Exact dimension column
+  if (dims.some((d) => d.column === sortCol)) return `"${sortCol}"`;
+  // 2. Exact metric alias (label or auto-generated)
+  const byAlias = mets.findIndex((m, i) => metricAlias(m, i) === sortCol);
+  if (byAlias !== -1) return `"${metricAlias(mets[byAlias], byAlias)}"`;
+  // 3. Raw metric column name → map to its alias
+  const byCol = mets.findIndex((m) => m.column === sortCol);
+  if (byCol !== -1) return `"${metricAlias(mets[byCol], byCol)}"`;
+  // 4. Fallback: first metric alias
+  return `"${metricAlias(mets[0], 0)}"`;
+}
+
 export interface WidgetQueryResult {
   columns: string[];
   rows: any[];
@@ -111,7 +129,7 @@ export async function queryWidget(
     if (metCols.length > 0 && dimCols.length > 0) {
       const groupBy = dims.map((d) => `"${d.column}"`).join(", ");
       let sql = `SELECT ${[...dimCols, ...metCols].join(", ")} FROM ${table} ${whereClause} GROUP BY ${groupBy}`;
-      if (widget.sortBy?.column) sql += ` ORDER BY "${widget.sortBy.column}" ${widget.sortBy.direction}`;
+      if (widget.sortBy?.column) sql += ` ORDER BY ${resolveOrderByExpr(widget.sortBy.column, dims, mets)} ${widget.sortBy.direction}`;
       else if (dims[0]?.sortDirection) sql += ` ORDER BY "${dims[0].column}" ${dims[0].sortDirection}`;
       if (widget.limit) sql += ` LIMIT ${widget.limit}`;
       const result = await connection.query(sql);
@@ -166,7 +184,7 @@ export async function queryWidget(
   let sql = `SELECT ${[...dimAliases, ...metCols].join(", ")} FROM ${table} ${whereClause} GROUP BY ${dimExprs.join(", ")}`;
 
   if (widget.sortBy?.column) {
-    sql += ` ORDER BY "${widget.sortBy.column}" ${widget.sortBy.direction}`;
+    sql += ` ORDER BY ${resolveOrderByExpr(widget.sortBy.column, dims, activeMets)} ${widget.sortBy.direction}`;
   } else if (activeMets.length > 0) {
     sql += ` ORDER BY "${metricAlias(activeMets[0], 0)}" DESC`;
   }

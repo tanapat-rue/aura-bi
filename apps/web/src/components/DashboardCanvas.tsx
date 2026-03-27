@@ -58,10 +58,13 @@ export function DashboardCanvas() {
     }
   }, []);
 
-  const globalTable = tables.find((t) =>
-    widgets.length > 0 ? t.name === widgets[0].dataSource : t.name === activeTable
-  );
-  const globalColumns = globalTable?.columns || [];
+  // Collect columns from every table used by any widget in this dashboard
+  const usedTableNames = new Set(widgets.map((w) => w.dataSource).filter(Boolean));
+  if (usedTableNames.size === 0 && activeTable) usedTableNames.add(activeTable);
+  const globalColumns = tables
+    .filter((t) => usedTableNames.has(t.name))
+    .flatMap((t) => t.columns.map((c) => ({ ...c, table: t.name })))
+    .filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i); // dedupe by name
 
   const captureCanvas = async () => {
     const el = document.getElementById("dashboard-export-area");
@@ -205,7 +208,7 @@ export function DashboardCanvas() {
                   const fl = [...globalFilters]; fl[i] = { ...f, column: e.target.value }; update({ globalFilters: fl });
                 }} className="select-sm">
                   <option value="">Col</option>
-                  {globalColumns.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  {globalColumns.map((c) => <option key={`${c.table}.${c.name}`} value={c.name}>{usedTableNames.size > 1 ? `${c.table}.${c.name}` : c.name}</option>)}
                 </select>
                 <select value={f.operator} onChange={(e) => {
                   const fl = [...globalFilters]; fl[i] = { ...f, operator: e.target.value as any }; update({ globalFilters: fl });

@@ -113,7 +113,7 @@ function createEmptyProject(name = "Untitled Project"): Project {
 
 // ─── Main BI Store ───────────────────────────────────────────
 
-type ViewMode = "data" | "profile" | "pipeline" | "chart" | "sql";
+type ViewMode = "data" | "profile" | "pipeline" | "chart" | "sql" | "agent";
 
 interface BIStore {
   // ─── Runtime (not persisted) ────────────────

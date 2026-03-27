@@ -4,6 +4,7 @@ import { DataProfiler } from "@/components/DataProfiler";
 import { PipelineBuilder } from "@/components/PipelineBuilder";
 import { DashboardCanvas } from "@/components/DashboardCanvas";
 import { SQLEditor } from "@/components/SQLEditor";
+import { AgentMode } from "@/components/AgentMode";
 import { TableList } from "@/components/TableList";
 import { ProjectPanel } from "@/components/ProjectPanel";
 import { useBIStore } from "@/lib/store";
@@ -14,11 +15,12 @@ const TABS = [
   { key: "pipeline", label: "ETL", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
   { key: "chart", label: "Dashboard", icon: "M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" },
   { key: "sql", label: "SQL", icon: "M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+  { key: "agent", label: "Agent", icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
 ] as const;
 
 export function Dashboard() {
   const { tables, viewMode, setViewMode, isProcessing, isSidebarCollapsed, toggleSidebar } = useBIStore();
-  const isFullWidth = viewMode === "chart";
+  const isFullWidth = viewMode === "chart" || viewMode === "agent";
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] relative overflow-hidden bg-surface-0">
@@ -106,6 +108,10 @@ export function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
+        ) : viewMode === "agent" ? (
+          <div className="flex-1 overflow-hidden">
+            <AgentMode />
           </div>
         ) : isFullWidth ? (
           <div className="flex-1 overflow-hidden">
