@@ -29,7 +29,7 @@ export function SearchSelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number; openAbove: boolean; maxListHeight: number }>({ top: 0, left: 0, width: 0, openAbove: false, maxListHeight: 224 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,14 +48,23 @@ export function SearchSelect({
       )
     : options;
 
-  // Position dropdown relative to trigger
+  // Position dropdown relative to trigger — flips upward when near bottom
   const updatePosition = useCallback(() => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const SEARCH_OVERHEAD = 60; // search input + border/padding
+      const MIN_LIST_HEIGHT = 80;
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      const openAbove = spaceBelow < 220 && spaceAbove > spaceBelow;
+      const availableSpace = openAbove ? spaceAbove : spaceBelow;
+      const maxListHeight = Math.max(MIN_LIST_HEIGHT, Math.min(224, availableSpace - SEARCH_OVERHEAD));
       setDropdownPos({
-        top: rect.bottom + 6,
+        top: openAbove ? rect.top - 6 : rect.bottom + 6,
         left: rect.left,
         width: rect.width,
+        openAbove,
+        maxListHeight,
       });
     }
   }, []);
@@ -146,6 +155,7 @@ export function SearchSelect({
             width: Math.max(dropdownPos.width, 220),
             minWidth: dropdownPos.width,
             zIndex: 9999,
+            transform: dropdownPos.openAbove ? "translateY(-100%)" : undefined,
           }}
         >
           <div
@@ -176,7 +186,7 @@ export function SearchSelect({
             </div>
 
             {/* Options */}
-            <div ref={listRef} className="max-h-56 overflow-y-auto py-1">
+            <div ref={listRef} className="overflow-y-auto py-1" style={{ maxHeight: dropdownPos.maxListHeight }}>
               {allowEmpty && (
                 <button
                   type="button"

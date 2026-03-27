@@ -195,6 +195,8 @@ export function PipelineBuilder() {
   const [savingAtStep, setSavingAtStep] = useState<number | null>(null);
   const [showFinalSave, setShowFinalSave] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(420);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -244,6 +246,25 @@ export function PipelineBuilder() {
     setDragOverIndex(null);
   };
 
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    setIsResizing(true);
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX; // drag left → wider, drag right → narrower
+      setSidebarWidth(Math.max(280, Math.min(720, startWidth + delta)));
+    };
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth]);
+
   if (!activeTable) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center animate-fade-in h-full">
@@ -257,7 +278,7 @@ export function PipelineBuilder() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className={`flex h-full overflow-hidden${isResizing ? " select-none" : ""}`}>
       
       {/* ─── LEFT PANE: DATA PREVIEW (MAIN AREA) ─── */}
       <div className="flex-1 flex flex-col min-w-0 p-6 relative">
@@ -338,12 +359,31 @@ export function PipelineBuilder() {
         </div>
       </div>
 
+      {/* ─── RESIZE HANDLE ─── */}
+      {isConfigOpen && (
+        <div
+          onMouseDown={handleResizeMouseDown}
+          onDoubleClick={() => setSidebarWidth(420)}
+          className="relative flex-shrink-0 w-1 z-20 group cursor-col-resize"
+          title="Drag to resize · Double-click to reset"
+        >
+          {/* visible indicator strip */}
+          <div className={`absolute inset-y-0 left-0 w-full transition-colors duration-150 ${isResizing ? "bg-aura-500/50" : "bg-white/[0.04] group-hover:bg-aura-500/30"}`} />
+          {/* wider invisible grab area */}
+          <div className="absolute inset-y-0 -left-2 -right-2" />
+          {/* center dots */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+            {[0,1,2].map(i => <div key={i} className="w-[3px] h-[3px] rounded-full bg-aura-400/70" />)}
+          </div>
+        </div>
+      )}
+
       {/* ─── RIGHT PANE: PIPELINE BUILDER (SIDEBAR) ─── */}
-      <div 
-        className={`flex-shrink-0 bg-surface-1 border-l border-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] overflow-hidden shadow-[-20px_0_40px_rgba(0,0,0,0.2)] z-10 flex flex-col`}
-        style={{ width: isConfigOpen ? '420px' : '0px' }}
+      <div
+        className={`flex-shrink-0 bg-surface-1 border-l border-white/[0.04] overflow-hidden shadow-[-20px_0_40px_rgba(0,0,0,0.2)] z-10 flex flex-col ${isResizing ? "" : "transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"}`}
+        style={{ width: isConfigOpen ? `${sidebarWidth}px` : "0px" }}
       >
-        <div className="w-[420px] flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ width: sidebarWidth }}>
       {/* Pipeline selector */}
       <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{ background: "linear-gradient(135deg, rgba(84,104,246,0.04) 0%, rgba(14,14,20,0.4) 60%)", border: "1px solid rgba(84,104,246,0.08)" }}>
         <div className="flex items-center gap-2">
