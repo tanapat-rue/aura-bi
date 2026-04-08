@@ -8,14 +8,16 @@ let conn: duckdb.AsyncDuckDBConnection | null = null;
 let _initPromise: Promise<duckdb.AsyncDuckDB> | null = null;
 let _connPromise: Promise<duckdb.AsyncDuckDBConnection> | null = null;
 
-// Local WASM bundles served from /public/duckdb/ — no CDN dependency
-const LOCAL_BUNDLES: duckdb.DuckDBBundles = {
+// WASM bundles: worker JS served locally, WASM modules from jsDelivr CDN.
+// The .wasm files are 33-38 MiB and exceed Cloudflare Pages' 25 MiB per-file limit.
+const CDN_BUNDLES = duckdb.getJsDelivrBundles();
+const BUNDLES: duckdb.DuckDBBundles = {
   mvp: {
-    mainModule: "/duckdb/duckdb-mvp.wasm",
+    mainModule: CDN_BUNDLES.mvp.mainModule,
     mainWorker: "/duckdb/duckdb-browser-mvp.worker.js",
   },
   eh: {
-    mainModule: "/duckdb/duckdb-eh.wasm",
+    mainModule: CDN_BUNDLES.eh!.mainModule,
     mainWorker: "/duckdb/duckdb-browser-eh.worker.js",
   },
 };
@@ -25,7 +27,7 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
   if (_initPromise) return _initPromise;
 
   _initPromise = (async () => {
-    const bundle = await duckdb.selectBundle(LOCAL_BUNDLES);
+    const bundle = await duckdb.selectBundle(BUNDLES);
     const worker = new Worker(bundle.mainWorker!);
     const logger = new duckdb.ConsoleLogger();
 

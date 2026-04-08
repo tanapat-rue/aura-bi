@@ -6,3 +6,6 @@ dist
 .env.local
 *.local
 .DS_Store
+
+# DuckDB WASM files exceed Cloudflare Pages 25 MiB limit — loaded from CDN at runtime
+apps/web/public/duckdb/*.wasm
