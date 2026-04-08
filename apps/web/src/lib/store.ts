@@ -300,18 +300,34 @@ export const useBIStore = create<BIStore>()(
           const connection = await getConnection();
           
           for (const ds of project.dataSources) {
-            const ext = ds.fileName.split(".").pop()?.toLowerCase();
-            let readExpr = `read_csv_auto('${ds.fileName}')`;
+            const ext = ds.fileName.split(".").pop()?.toLowerCase() ?? "csv";
+            // Prefer the safe key (tableName.ext) used by new uploads;
+            // fall back to the original fileName for data saved by older versions
+            const safeKey = `${ds.name}.${ext}`;
+            const vfsKey = safeKey;
+            let readExpr: string;
             if (ext === "json" || ext === "jsonl" || ext === "ndjson") {
-              readExpr = `read_json_auto('${ds.fileName}')`;
+              readExpr = `read_json_auto('${vfsKey}')`;
             } else if (ext === "parquet") {
-              readExpr = `read_parquet('${ds.fileName}')`;
+              readExpr = `read_parquet('${vfsKey}')`;
+            } else {
+              readExpr = `read_csv_auto('${vfsKey}', header=true, sample_size=20000, null_padding=true)`;
             }
             try {
               await connection.query(`CREATE OR REPLACE TABLE "${ds.name}" AS SELECT * FROM ${readExpr}`);
               await castTemporalColumnsToVarchar(connection, ds.name);
             } catch (e) {
-              console.warn(`Failed to restore table ${ds.name} from OPFS (buffer might be missing)`, e);
+              // Safe key failed — try original filename (for data uploaded by older versions)
+              try {
+                const origKey = ds.fileName.replace(/'/g, "''");
+                let fallbackExpr = `read_csv_auto('${origKey}', header=true, sample_size=20000, null_padding=true)`;
+                if (ext === "json" || ext === "jsonl" || ext === "ndjson") fallbackExpr = `read_json_auto('${origKey}')`;
+                else if (ext === "parquet") fallbackExpr = `read_parquet('${origKey}')`;
+                await connection.query(`CREATE OR REPLACE TABLE "${ds.name}" AS SELECT * FROM ${fallbackExpr}`);
+                await castTemporalColumnsToVarchar(connection, ds.name);
+              } catch (e2) {
+                console.warn(`Failed to restore table "${ds.name}" — file may need to be re-uploaded`, e2);
+              }
             }
           }
           

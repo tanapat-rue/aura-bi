@@ -13,7 +13,8 @@ export function FileDropzone() {
         setProcessing(true);
         setStatus(`Loading ${file.name}...`);
         try {
-          const tableName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_");
+          const base = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").replace(/^_+/, "") || "table";
+          const tableName = /^\d/.test(base) ? `t_${base}` : base;
           const ext = file.name.split(".").pop()?.toLowerCase() || "csv";
           const result = await ingestFile(file, tableName);
           setStatus(`${result.rowCount.toLocaleString()} rows loaded`);

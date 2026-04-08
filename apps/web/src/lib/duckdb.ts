@@ -4,47 +4,64 @@ import { opfs } from "./fs";
 let db: duckdb.AsyncDuckDB | null = null;
 let conn: duckdb.AsyncDuckDBConnection | null = null;
 
+// Promise guards prevent concurrent callers from racing through the null checks
+let _initPromise: Promise<duckdb.AsyncDuckDB> | null = null;
+let _connPromise: Promise<duckdb.AsyncDuckDBConnection> | null = null;
+
+// Local WASM bundles served from /public/duckdb/ — no CDN dependency
+const LOCAL_BUNDLES: duckdb.DuckDBBundles = {
+  mvp: {
+    mainModule: "/duckdb/duckdb-mvp.wasm",
+    mainWorker: "/duckdb/duckdb-browser-mvp.worker.js",
+  },
+  eh: {
+    mainModule: "/duckdb/duckdb-eh.wasm",
+    mainWorker: "/duckdb/duckdb-browser-eh.worker.js",
+  },
+};
+
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
   if (db) return db;
+  if (_initPromise) return _initPromise;
 
-  // Resolve bundles directly from jsdelivr CDN to avoid bundling huge WASM files
-  const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-  const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
-  
-  // Cross-origin Web Workers are blocked by default. 
-  // We bypass this by creating a local Blob that simply imports the CDN script.
-  const worker_url = URL.createObjectURL(
-    new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
-  );
-  
-  const worker = new Worker(worker_url);
-  const logger = new duckdb.ConsoleLogger();
+  _initPromise = (async () => {
+    const bundle = await duckdb.selectBundle(LOCAL_BUNDLES);
+    const worker = new Worker(bundle.mainWorker!);
+    const logger = new duckdb.ConsoleLogger();
 
-  db = new duckdb.AsyncDuckDB(logger, worker);
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  URL.revokeObjectURL(worker_url);
+    const instance = new duckdb.AsyncDuckDB(logger, worker);
+    await instance.instantiate(bundle.mainModule, bundle.pthreadWorker ?? null);
 
-  // Restore raw data from OPFS (Local Storage)
-  try {
-    const files = await opfs.listFiles();
-    for (const f of files) {
-      const data = await opfs.getFile(f.name);
-      if (data) {
-        await db.registerFileBuffer(f.name, data);
+    // Restore raw file buffers from OPFS so tables can be recreated
+    try {
+      const files = await opfs.listFiles();
+      for (const f of files) {
+        const data = await opfs.getFile(f.name);
+        if (data) await instance.registerFileBuffer(f.name, data);
       }
+    } catch (err) {
+      console.error("Failed to restore OPFS files into DuckDB:", err);
     }
-  } catch (err) {
-    console.error("Failed to restore OPFS files into DuckDB:", err);
-  }
 
-  return db;
+    db = instance;
+    return db;
+  })();
+
+  return _initPromise;
 }
 
 export async function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
   if (conn) return conn;
-  const database = await initDuckDB();
-  conn = await database.connect();
-  return conn;
+  if (_connPromise) return _connPromise;
+
+  _connPromise = (async () => {
+    const database = await initDuckDB();
+    conn = await database.connect();
+    _connPromise = null;
+    return conn;
+  })();
+
+  return _connPromise;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -91,23 +108,26 @@ export async function ingestFile(
   const database = await initDuckDB();
   const connection = await getConnection();
 
-  const ext = file.name.split(".").pop()?.toLowerCase();
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "csv";
 
   const buffer = await file.arrayBuffer();
   const uint8Data = new Uint8Array(buffer);
 
-  // Persist the raw data to OPFS so it survives reloads
-  await opfs.saveFile(file.name, uint8Data);
+  // Use tableName.ext as the VFS key — guaranteed safe for use inside SQL strings
+  // (avoids apostrophes, spaces, or other special chars from the original filename)
+  const vfsKey = `${tableName}.${ext}`;
 
-  await database.registerFileBuffer(file.name, uint8Data);
+  // Persist to OPFS and register in DuckDB VFS under the safe key
+  await opfs.saveFile(vfsKey, uint8Data);
+  await database.registerFileBuffer(vfsKey, uint8Data);
 
   let readExpr: string;
   if (ext === "json" || ext === "jsonl" || ext === "ndjson") {
-    readExpr = `read_json_auto('${file.name}')`;
+    readExpr = `read_json_auto('${vfsKey}')`;
   } else if (ext === "parquet") {
-    readExpr = `read_parquet('${file.name}')`;
+    readExpr = `read_parquet('${vfsKey}')`;
   } else {
-    readExpr = `read_csv_auto('${file.name}')`;
+    readExpr = `read_csv_auto('${vfsKey}', header=true, sample_size=20000, null_padding=true)`;
   }
 
   await connection.query(
